@@ -3,14 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      DATABASE_URL: postgresql://aiverse:${POSTGRES_PASSWORD:-aiverse}@postgres:5432/aiverse
-      REDIS_URL: redis://:${REDIS_PASSWORD:-aiverse}@redis:6379
-      DIRECT_URL: postgresql://aiverse:${POSTGRES_PASSWORD:-aiverse}@postgres:5432/aiverse
     ports:
       - '3000:3000'
     volumes:
       - ./src:/app/src
+      - ./prisma:/app/prisma
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,22 +48,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-    depends_on:
-      - app
-    volumes:
-      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost/healthz']
-      interval: 10s
-      timeout: 3s
-      retries: 10
 
 volumes:
   pgdata:
