@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String?   @unique
+  role          String    @default("USER")
+  plan          String    @default("FREE")
+  planExpiresAt DateTime?
+  isActive      Boolean   @default(true)
+
+  creatorProfile  CreatorProfile?
+  wallets         Wallet[]
+  subscriptions   Subscription[]
+  agentReviews    AgentReview[]
+  agentExecutions AgentExecution[]
+
+  auditLogs        AuditLog[]        @relation("AuditActor")
+  payouts          CreatorPayout[]
+}
+
+model CreatorProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  bio           String?
+  payoutMethod  String?
+  payoutAccount String?
+  totalEarned   Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Agent {
+  id            String   @id @default(cuid())
+  creatorId     String
+  name          String
+  slug          String   @unique
+  category      String
+  status        String   @default("DRAFT")
+  pricingType   String   @default("FREE")
+  creditsPerRun Int
+  modelProvider String
+  systemPrompt  String?
+  toolsConfig   String?
+  totalRuns     Int      @default(0)
+  avgRating     Float?
+
+  versions    AgentVersion[]
+  reviews     AgentReview[]
+  executions  AgentExecution[]
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+}
+
+model AgentVersion {
+  id        String   @id @default(cuid())
+  agentId   String
+  version   String
+  changelog String?
+  config    String?
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, version])
+}
+
+model AgentReview {
+  id           String   @id @default(cuid())
+  agentId      String
+  userId       String
+  rating       Int
+  title        String?
+  body         String?
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, userId])
+}
+
+model AgentExecution {
+  id          String   @id @default(cuid())
+  agentId     String
+  userId      String
+  sessionId   String?
+  tokens      Int?
+  creditsUsed Int
+  durationMs  Int?
+  status      String
+  modelUsed   String?
+  createdAt   DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Wallet {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  balance        Int      @default(0)
+  lifetimeEarned Int      @default(0)
+  lifetimeSpent  Int      @default(0)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  amount       Int
+  balanceAfter Int
+  referenceType String?
+  referenceId   String?
+  createdAt    DateTime @default(now())
+
+  wallet Wallet @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  userId           String
+  plan             String
+  providerSubId    String?
+  status           String   @default("active")
+  currentPeriodEnd DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  userId           String
+  provider         String
+  providerPaymentId String?
+  amountUsd        Decimal  @db.Decimal(10, 2)
+  creditsGranted   Int?
+  status           String
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreatorPayout {
+  id             String   @id @default(cuid())
+  creatorId      String
+  amountUsd      Decimal  @db.Decimal(10, 2)
+  creditsRedeemed Int?
+  status         String
+  payoutMethod   String?
+  createdAt      DateTime @default(now())
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+}
