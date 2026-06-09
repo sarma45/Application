@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '../../auth/[...nextauth]/route';
+import { auth } from '../auth/[...nextauth]/route';
 import { complete } from '@/lib/ai/gateway';
 
 export const runtime = 'edge';
