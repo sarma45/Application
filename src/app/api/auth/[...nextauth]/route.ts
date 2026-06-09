@@ -1,11 +1,8 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+import { prisma } from "@/lib/prisma-server";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+export const { handlers, auth } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [
@@ -17,15 +14,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) return null;
         const email = String(credentials.email).trim().toLowerCase();
+        const password = String(credentials.password);
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-          include: { wallets: true },
-        });
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.password) return null;
 
-        if (!user) return null;
-
-        const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+        const expected = user.password;
+        const actual = await hashPassword(password);
+        if (actual !== expected) return null;
 
         return {
           id: user.id,
@@ -33,7 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           username: user.username ?? undefined,
           role: user.role,
           plan: user.plan,
-          wallet: wallet ? { balance: wallet.balance } : { balance: 0 },
+          wallet: null,
         };
       },
     }),
@@ -42,12 +38,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token = {
+          ...token,
           id: user.id,
           email: user.email,
           username: (user as any).username ?? null,
           role: (user as any).role ?? "USER",
           plan: (user as any).plan ?? "FREE",
-          wallet: (user as any).wallet ?? { balance: 0 },
+          wallet: { balance: 0 },
         };
       }
       return token;
@@ -56,15 +53,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user = {
         id: token.id as string,
         email: token.email as string,
-        username: token.username as string | null,
-        role: token.role as string,
-        plan: token.plan as string,
-        wallet: token.wallet as { balance: number },
+        name: session.user?.name ?? null,
+        username: (token as any).username ?? null,
+        role: (token as any).role ?? "USER",
+        plan: (token as any).plan ?? "FREE",
+        wallet: (token as any).wallet ?? { balance: 0 },
       };
       return session;
     },
   },
 });
 
-export const GET = handlers.GET;
-export const POST = handlers.POST;
+export const GET = handlers;
+export const POST = handlers;
+
+async function hashPassword(password: string): Promise<string> {
+  const nodeCrypto = await import("node:crypto");
+  return nodeCrypto.createHash("sha256").update(password).digest("hex");
+}
+

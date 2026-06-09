@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '../auth/[...nextauth]/route';
 import { complete } from '@/lib/ai/gateway';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   const session = await auth();

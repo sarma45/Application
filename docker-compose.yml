@@ -8,9 +8,6 @@ services:
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
-    environment:
-      DATABASE_URL: postgresql://aiverse:aiverse@postgres:5432/aiverse?schema=public
-      REDIS_URL: redis://aiverse@redis:6379
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,21 +39,15 @@ services:
       --requirepass ${REDIS_PASSWORD:-aiverse}
       --maxmemory 2gb
       --maxmemory-policy allkeys-lru
-      --loglevel notice
-      --save 60 1
-      --appendonly yes
-      --appendfsync everysec
     volumes:
       - redisdata:/data
     ports:
       - '6379:6379'
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '$${REDIS_PASSWORD:-aiverse}', 'PING']
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 5s
       timeout: 3s
       retries: 20
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-aiverse}
 
 volumes:
   pgdata:

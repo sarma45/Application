@@ -4,13 +4,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   username      String?   @unique
+  password      String?
   role          String    @default("USER")
   plan          String    @default("FREE")
   planExpiresAt DateTime?
@@ -21,7 +21,6 @@ model User {
   subscriptions   Subscription[]
   agentReviews    AgentReview[]
   agentExecutions AgentExecution[]
-
   auditLogs        AuditLog[]        @relation("AuditActor")
   payouts          CreatorPayout[]
   agents           Agent[]
@@ -46,8 +45,8 @@ model Agent {
   name          String
   slug          String   @unique
   category      String
-  status        String    @default("DRAFT")
-  pricingType   String    @default("FREE")
+  status        String   @default("DRAFT")
+  pricingType   String   @default("FREE")
   creditsPerRun Int
   modelProvider String
   systemPrompt  String?
@@ -141,7 +140,7 @@ model Subscription {
   userId           String
   plan             String
   providerSubId    String?
-  status           String    @default("active")
+  status           String   @default("active")
   currentPeriodEnd DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -179,7 +178,7 @@ model AuditLog {
   targetType String?
   targetId   String?
   metadata   String?
-  createdAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   actor User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Cascade)
 
