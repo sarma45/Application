@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -16,11 +17,11 @@ model User {
   planExpiresAt DateTime?
   isActive      Boolean   @default(true)
 
-  creatorProfile  CreatorProfile?
-  wallets         Wallet[]
-  subscriptions   Subscription[]
-  agentReviews    AgentReview[]
-  agentExecutions AgentExecution[]
+  creatorProfile   CreatorProfile?
+  wallets          Wallet[]
+  subscriptions    Subscription[]
+  agentReviews     AgentReview[]
+  agentExecutions  AgentExecution[]
   auditLogs        AuditLog[]        @relation("AuditActor")
   payouts          CreatorPayout[]
   agents           Agent[]
@@ -142,7 +143,7 @@ model Subscription {
   userId           String
   plan             String
   providerSubId    String?
-  status           String   @default("active")
+  status           String    @default("active")
   currentPeriodEnd DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
