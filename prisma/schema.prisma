@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -118,6 +118,8 @@ model Wallet {
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+
+  @@index([userId])
 }
 
 model Transaction {

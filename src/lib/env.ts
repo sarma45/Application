@@ -9,7 +9,9 @@ export type RequiredEnv = typeof requiredEnv[number];
 export function assertEnv() {
   const missing: string[] = [];
   for (const key of requiredEnv) {
-    if (!process.env[key]) missing.push(key);
+    if (!process.env[key]) {
+      missing.push(key);
+    }
   }
   if (missing.length) {
     throw new Error(`Missing required env vars: ${missing.join(", ")}`);
