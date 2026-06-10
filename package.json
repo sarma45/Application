@@ -23,12 +23,14 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@prisma/cli": "6.19.3",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "prisma": "^6.19.3",
     "tailwindcss": "latest",
     "typescript": "latest"
   }
