@@ -13,6 +13,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden: admin only" }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const parsed = walletCreditSchema.safeParse(body);

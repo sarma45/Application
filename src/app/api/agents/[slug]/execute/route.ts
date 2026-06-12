@@ -157,7 +157,7 @@ export async function POST(
       );
     }
 
-    const safety = await checkSafety(message);
+    const safety = await checkSafety(message, session.user.id);
     if (!safety.safe) {
       return NextResponse.json({ error: safety.reason }, { status: 400 });
     }
@@ -169,11 +169,11 @@ export async function POST(
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    if (agent.status === "ARCHIVED") {
-      return NextResponse.json({ error: "This agent has been archived and can no longer be run" }, { status: 410 });
+    if (agent.status !== "APPROVED" && agent.creatorId !== session.user.id) {
+      return NextResponse.json({ error: "This agent is not available for execution" }, { status: 403 });
     }
 
-    const isTestMode = body._test === true;
+    const isTestMode = body._test === true && agent.creatorId === session.user.id;
     const wallet = isTestMode ? null : await prisma.wallet.findUnique({ where: { userId: session.user.id } });
     const cost = agent.pricingType === "FREE" ? 0 : agent.creditsPerRun;
 
@@ -198,6 +198,19 @@ export async function POST(
     let usedProvider = "";
     let executionSucceeded = false;
     const startTime = Date.now();
+
+    if (!isTestMode && cost > 0) {
+      await prisma.$transaction(async (tx) => {
+        const w = await tx.wallet.findUnique({ where: { userId: session.user.id } });
+        if (!w || w.balance < cost) {
+          throw new Error("Insufficient credits");
+        }
+        await tx.wallet.update({
+          where: { userId: session.user.id },
+          data: { balance: w.balance - cost, lifetimeSpent: w.lifetimeSpent + cost },
+        });
+      });
+    }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -324,34 +337,27 @@ export async function POST(
           }
         }
 
-        // Only deduct credits and pay creator on success
         if (executionSucceeded && !isTestMode) {
           const durationMs = Date.now() - startTime;
+          const executionId = `${session.user.id}:${agent.id}:${Date.now()}`;
 
           if (cost > 0) {
-            await prisma.$transaction(async (tx) => {
-              const w = await tx.wallet.findUnique({ where: { userId: session.user.id } });
-              if (w && w.balance >= cost) {
-                await tx.wallet.update({
-                  where: { userId: session.user.id },
-                  data: { balance: w.balance - cost, lifetimeSpent: w.lifetimeSpent + cost },
-                });
-                await tx.transaction.create({
-                  data: {
-                    userId: session.user.id,
-                    type: "SPEND",
-                    amount: cost,
-                    balanceAfter: w.balance - cost,
-                    referenceType: "AgentExecution",
-                    referenceId: agent.id,
-                  },
-                });
-              }
-            });
+            const w = await prisma.wallet.findUnique({ where: { userId: session.user.id } });
+            if (w) {
+              await prisma.transaction.create({
+                data: {
+                  userId: session.user.id,
+                  type: "SPEND",
+                  amount: cost,
+                  balanceAfter: w.balance,
+                  referenceType: "AgentExecution",
+                  referenceId: executionId,
+                },
+              });
+            }
           }
 
-          // Credit creator 80% revenue share
-          await creditCreator(agent.creatorId, cost, agent.id);
+          await creditCreator(agent.creatorId, cost, executionId);
 
           // Save conversation history
           await appendHistory(sessionId, { role: "user", content: safeMessage });

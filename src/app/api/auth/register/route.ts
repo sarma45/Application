@@ -2,26 +2,11 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
+import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
-
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY) return;
-  try {
-    const { Resend } = await import("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: "noreply@aiverse.ai",
-      to,
-      subject,
-      html,
-    });
-  } catch (error) {
-    logger.warn("Failed to send email", { error: String(error) });
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -56,11 +41,11 @@ export async function POST(request: Request) {
 
     const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
 
-    await sendEmail(
-      email,
-      "Verify your AIVerse account",
-      `<p>Welcome to AIVerse! Click <a href="${verifyUrl}">here</a> to verify your email.<br/><br/>You'll receive 100 free credits once verified.</p>`
-    );
+    await sendEmail({
+      to: email,
+      subject: "Verify your AIVerse account",
+      html: `<p>Welcome to AIVerse! Click <a href="${verifyUrl}">here</a> to verify your email.<br/><br/>You'll receive 100 free credits once verified.</p>`,
+    });
 
     logger.info("User registered", { userId: user.id, email });
 

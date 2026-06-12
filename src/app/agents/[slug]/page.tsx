@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentRunner } from "@/components/agent/agent-runner";
+import { ReviewForm } from "@/components/agent/review-form";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
 interface AgentDetailPageProps {
@@ -111,6 +112,15 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
                 isTestMode={isCreator}
                 isCreator={isCreator}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-zinc-100">Write a Review</h2>
+            </CardHeader>
+            <CardContent>
+              <ReviewForm agentId={agent.id} slug={agent.slug} />
             </CardContent>
           </Card>
 

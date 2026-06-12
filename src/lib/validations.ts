@@ -2,8 +2,10 @@ import { z } from "zod";
 
 export const registerSchema = z.object({
   email: z.string().email().max(255).transform(v => v.trim().toLowerCase()),
-  password: z.string().min(6).max(128),
-  username: z.string().trim().min(2).max(50).optional(),
+  password: z.string().min(8).max(128).refine(v => /[A-Z]/.test(v), "Must contain uppercase letter")
+    .refine(v => /[a-z]/.test(v), "Must contain lowercase letter")
+    .refine(v => /[0-9]/.test(v), "Must contain digit"),
+  username: z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, "Only alphanumeric and underscores").optional(),
 });
 
 export const createAgentSchema = z.object({
@@ -30,11 +32,10 @@ export const listAgentsSchema = z.object({
 });
 
 export const executeSchema = z.object({
-  message: z.string().min(1).max(50000),
+  message: z.string().min(1).max(10000),
   systemPrompt: z.string().max(10000).optional(),
   category: z.enum(["CHAT", "CODE", "DATA", "WORKFLOW"]).optional(),
   sessionId: z.string().max(200).optional(),
-  _test: z.boolean().optional(),
 });
 
 export const chatSchema = z.object({

@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector, pg_trgm, uuid-ossp]
 }
 
 model User {
@@ -19,6 +20,7 @@ model User {
   isActive      Boolean   @default(false)
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   creatorProfile  CreatorProfile?
   wallets         Wallet[]
@@ -37,6 +39,8 @@ model User {
   emailVerifications EmailVerification[]
   favorites       AgentFavorite[]
   files           File[]
+
+  @@index([role])
 }
 
 model Account {
@@ -144,6 +148,7 @@ model Agent {
   totalRuns     Int      @default(0)
   avgRating     Float?
   viewCount     Int      @default(0)
+  embedding     Unsupported("vector(1536)")?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -158,6 +163,7 @@ model Agent {
   @@index([slug])
   @@index([tags])
   @@index([name])
+  @@index([isFeatured])
 }
 
 model AgentVersion {
@@ -289,6 +295,8 @@ model Payment {
   createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([providerPaymentId])
 }
 
 model CreatorPayout {

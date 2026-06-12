@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const creditsNeeded = Math.ceil(amountUsd * 100);
     const wallet = await prisma.wallet.findUnique({ where: { userId: session.user.id } });
 
-    if (!wallet || wallet.lifetimeEarned < creditsNeeded) {
+    if (!wallet || wallet.lifetimeEarned < creditsNeeded || wallet.balance < creditsNeeded) {
       return NextResponse.json(
         { error: "Insufficient earned credits for this payout amount" },
         { status: 400 }
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const payout = await prisma.$transaction(async (tx) => {
       await tx.wallet.update({
         where: { userId: session.user.id },
-        data: { lifetimeEarned: wallet.lifetimeEarned - creditsNeeded },
+        data: { balance: { decrement: creditsNeeded }, lifetimeEarned: wallet.lifetimeEarned - creditsNeeded },
       });
 
       return tx.creatorPayout.create({

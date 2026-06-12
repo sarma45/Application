@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const authPaths = ["/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"];
+const authPaths = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/verify-email",
+];
 
 async function getRedisClient() {
   try {
@@ -16,8 +22,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/")) {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || request.headers.get("x-real-ip")
+    const ip = request.headers.get("x-real-ip")
+      || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       || "unknown";
 
     const zone = authPaths.some(p => pathname.startsWith(p)) ? "auth" : "api";
@@ -61,6 +67,15 @@ export async function middleware(request: NextRequest) {
     g.__rateLimits = rateLimits;
     const now = Date.now();
     const windowMs = windowSeconds * 1000;
+
+    // Cleanup expired entries every 100 requests
+    if (rateLimits.size > 1000) {
+      const cutoff = now - 60000;
+      for (const [k, v] of rateLimits) {
+        if (v.reset < cutoff) rateLimits.delete(k);
+      }
+    }
+
     const record = rateLimits.get(key);
 
     if (record && now < record.reset) {

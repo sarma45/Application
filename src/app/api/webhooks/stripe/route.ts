@@ -30,6 +30,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
     }
 
+    const existing = await prisma.payment.findFirst({
+      where: { providerPaymentId: checkoutSession.id },
+    });
+    if (existing) {
+      return NextResponse.json({ received: true, deduplicated: true });
+    }
+
     await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.upsert({
         where: { userId },
@@ -37,11 +44,11 @@ export async function POST(req: Request) {
         create: { userId, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
       });
 
-      await tx.wallet.update({
+      const updated = await tx.wallet.update({
         where: { userId },
         data: {
-          balance: wallet.balance + credits,
-          lifetimeEarned: wallet.lifetimeEarned + credits,
+          balance: { increment: credits },
+          lifetimeEarned: { increment: credits },
         },
       });
 
@@ -50,9 +57,20 @@ export async function POST(req: Request) {
           userId,
           type: "PURCHASE",
           amount: credits,
-          balanceAfter: wallet.balance + credits,
+          balanceAfter: updated.balance,
           referenceType: "StripePayment",
           referenceId: checkoutSession.id,
+        },
+      });
+
+      await tx.payment.create({
+        data: {
+          userId,
+          provider: "STRIPE",
+          providerPaymentId: checkoutSession.id,
+          amountUsd: credits,
+          creditsGranted: credits,
+          status: "COMPLETED",
         },
       });
     });

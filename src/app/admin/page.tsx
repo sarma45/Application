@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { ModerationActions } from "@/components/admin/moderation-actions";
 
 export default async function AdminPage() {
   const session = await requireRole("ADMIN", "MODERATOR");
@@ -44,16 +44,7 @@ export default async function AdminPage() {
                         </Link>
                         <p className="text-xs text-zinc-500">by {agent.creator.email} &middot; {agent.category}</p>
                       </div>
-                      <div className="flex gap-2">
-                        <form action={`/api/admin/agents/${agent.id}`} method="POST">
-                          <input type="hidden" name="action" value="approve" />
-                          <Button type="submit" variant="primary" size="sm">Approve</Button>
-                        </form>
-                        <form action={`/api/admin/agents/${agent.id}`} method="POST">
-                          <input type="hidden" name="action" value="reject" />
-                          <Button type="submit" variant="destructive" size="sm">Reject</Button>
-                        </form>
-                      </div>
+                      <ModerationActions agentId={agent.id} />
                     </div>
                   ))}
                 </div>

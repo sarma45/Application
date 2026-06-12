@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { complete } from '@/lib/ai/gateway';
 import { chatSchema } from '@/lib/validations';
+import { checkSafety, sanitizeInput } from '@/lib/ai/safety';
 
 export const runtime = 'nodejs';
 
@@ -19,9 +20,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
+    const safety = await checkSafety(parsed.data.message, session.user.id);
+    if (!safety.safe) {
+      return NextResponse.json({ error: safety.reason }, { status: 400 });
+    }
+
+    const safeMessage = sanitizeInput(parsed.data.message);
+
     const result = await complete({
       category: 'CHAT',
-      prompt: parsed.data.message,
+      prompt: safeMessage,
       systemPrompt: 'You are AIVerse, an AI assistant.'
     });
 
