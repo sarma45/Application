@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/auth-config";
+import { stripe, CREDIT_PACKAGES, getPricePerCredit } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
-const creditPackages: Record<number, number> = {
-  100: 1.99,
-  500: 7.99,
-  1500: 19.99,
-  5000: 49.99,
-};
-
 export async function POST(req: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -21,42 +15,43 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const credits = parseInt(formData.get("credits") as string);
 
-    if (!credits || !creditPackages[credits]) {
+    if (!credits || !CREDIT_PACKAGES[credits]) {
       return NextResponse.json({ error: "Invalid credit package" }, { status: 400 });
     }
 
-    const wallet = await prisma.wallet.upsert({
-      where: { userId: session.user.id },
-      update: {},
-      create: { userId: session.user.id, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 },
-    });
+    if (!process.env.STRIPE_SECRET) {
+      return NextResponse.json({ error: "Payments not configured" }, { status: 503 });
+    }
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const w = await tx.wallet.update({
-        where: { userId: session.user.id },
-        data: { balance: wallet.balance + credits, lifetimeEarned: wallet.lifetimeEarned + credits },
-      });
+    const price = getPricePerCredit(credits);
 
-      await tx.transaction.create({
-        data: {
-          userId: session.user.id,
-          type: "PURCHASE",
-          amount: credits,
-          balanceAfter: w.balance,
-          referenceType: "CreditPurchase",
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `${credits} AIVerse Credits`,
+              description: `Credit package for AI agent execution`,
+            },
+            unit_amount: Math.round(price * 100),
+          },
+          quantity: 1,
         },
-      });
-
-      return w;
+      ],
+      metadata: {
+        userId: session.user.id,
+        credits: String(credits),
+      },
+      success_url: new URL(`/wallet?success=true&credits=${credits}`, req.url).toString(),
+      cancel_url: new URL("/wallet?error=cancelled", req.url).toString(),
     });
 
-    return NextResponse.redirect(
-      new URL(`/wallet?success=true&credits=${credits}`, req.url)
-    );
+    return NextResponse.redirect(checkoutSession.url ?? "/wallet?error=checkout_failed");
   } catch (error) {
     console.error("checkout error", error);
-    return NextResponse.redirect(
-      new URL("/wallet?error=checkout_failed", req.url)
-    );
+    return NextResponse.redirect(new URL("/wallet?error=checkout_failed", req.url));
   }
 }

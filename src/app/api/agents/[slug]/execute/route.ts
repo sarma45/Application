@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { getRoutesForCategory } from "@/lib/ai/gateway";
+import type { AgentCategory } from "@/lib/ai/gateway";
 
 export const runtime = "nodejs";
 
@@ -8,7 +11,7 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -36,86 +39,93 @@ export async function POST(
     }
 
     const systemPromptToUse = systemPrompt || agent.systemPrompt || "You are a helpful AI assistant.";
+    const agentCategory: AgentCategory = (category || agent.category) as AgentCategory;
+    const routes = getRoutesForCategory(agentCategory);
+
+    if (routes.length === 0) {
+      return NextResponse.json({ error: "No AI providers configured" }, { status: 503 });
+    }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        try {
-          const geminiKey = process.env.GEMINI_API_KEY;
-          const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+        let usedModel = "";
+        let usedProvider = "";
 
-          if (geminiKey) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiKey}`;
+        for (const route of routes) {
+          usedModel = route.model;
+          usedProvider = route.provider;
 
-            const payload = {
-              contents: [
-                {
-                  role: "user",
-                  parts: [{ text: [systemPromptToUse, message].filter(Boolean).join("\n\n") }],
+          try {
+            if (route.provider === "gemini") {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${route.model}:streamGenerateContent?alt=sse`;
+
+              const payload = {
+                contents: [
+                  {
+                    role: "user",
+                    parts: [{ text: [systemPromptToUse, message].filter(Boolean).join("\n\n") }],
+                  },
+                ],
+                generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+              };
+
+              const res = await fetch(url, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": route.apiKey,
                 },
-              ],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-            };
+                body: JSON.stringify(payload),
+              });
 
-            const res = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": geminiKey,
-              },
-              body: JSON.stringify(payload),
-            });
+              if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Gemini error ${res.status}: ${errText}`);
+              }
 
-            if (!res.ok) {
-              const errText = await res.text();
-              throw new Error(`Gemini error ${res.status}: ${errText}`);
-            }
+              const reader = res.body?.getReader();
+              if (!reader) throw new Error("No response body from Gemini");
 
-            const reader = res.body?.getReader();
-            if (!reader) throw new Error("No response body from Gemini");
+              const decoder = new TextDecoder();
+              let buffer = "";
 
-            const decoder = new TextDecoder();
-            let buffer = "";
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
 
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() || "";
-
-              for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  const data = line.slice(6).trim();
-                  if (!data || data === "[DONE]") continue;
-                  try {
-                    const parsed = JSON.parse(data);
-                    const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                      const chunk = JSON.stringify({ text });
-                      controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+                for (const line of lines) {
+                  if (line.startsWith("data: ")) {
+                    const data = line.slice(6).trim();
+                    if (!data || data === "[DONE]") continue;
+                    try {
+                      const parsed = JSON.parse(data);
+                      const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                      if (text) {
+                        const chunk = JSON.stringify({ text });
+                        controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+                      }
+                    } catch {
+                      // skip
                     }
-                  } catch {
-                    // skip
                   }
                 }
               }
-            }
-          } else {
-            const openRouterKey = process.env.OPENROUTER_API_KEY;
-            if (openRouterKey) {
-              const model = process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free";
+            } else {
               const url = "https://openrouter.ai/api/v1/chat/completions";
 
               const res = await fetch(url, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${openRouterKey}`,
+                  Authorization: `Bearer ${route.apiKey}`,
                 },
                 body: JSON.stringify({
-                  model,
+                  model: route.model,
                   messages: [
                     { role: "system", content: systemPromptToUse },
                     { role: "user", content: message },
@@ -161,46 +171,47 @@ export async function POST(
                   }
                 }
               }
-            } else {
-              throw new Error("No AI provider configured");
             }
+
+            // Success — break out of retry loop
+            break;
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Provider failed";
+            console.warn("execution route provider failed", { provider: route.provider, error: msg });
+            // Continue to next fallback
+            continue;
           }
-
-          if (cost > 0) {
-            await prisma.$transaction(async (tx) => {
-              const w = await tx.wallet.findUnique({ where: { userId: session.user.id } });
-              if (w && w.balance >= cost) {
-                await tx.wallet.update({
-                  where: { userId: session.user.id },
-                  data: { balance: w.balance - cost, lifetimeSpent: w.lifetimeSpent + cost },
-                });
-                await tx.transaction.create({
-                  data: {
-                    userId: session.user.id,
-                    type: "SPEND",
-                    amount: cost,
-                    balanceAfter: w.balance - cost,
-                    referenceType: "AgentExecution",
-                    referenceId: agent.id,
-                  },
-                });
-              }
-            });
-          }
-
-          await prisma.agent.update({
-            where: { id: agent.id },
-            data: { totalRuns: { increment: 1 } },
-          });
-
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Execution failed";
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
         }
+
+        if (cost > 0) {
+          await prisma.$transaction(async (tx) => {
+            const w = await tx.wallet.findUnique({ where: { userId: session.user.id } });
+            if (w && w.balance >= cost) {
+              await tx.wallet.update({
+                where: { userId: session.user.id },
+                data: { balance: w.balance - cost, lifetimeSpent: w.lifetimeSpent + cost },
+              });
+              await tx.transaction.create({
+                data: {
+                  userId: session.user.id,
+                  type: "SPEND",
+                  amount: cost,
+                  balanceAfter: w.balance - cost,
+                  referenceType: "AgentExecution",
+                  referenceId: agent.id,
+                },
+              });
+            }
+          });
+        }
+
+        await prisma.agent.update({
+          where: { id: agent.id },
+          data: { totalRuns: { increment: 1 } },
+        });
+
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
       },
     });
 

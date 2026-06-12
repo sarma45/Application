@@ -15,39 +15,13 @@ export interface CompletionResult {
   model: string;
 }
 
-export interface ModelConfig {
-  provider: string;
-  model: string;
+export interface ProviderRoute {
+  provider: "openrouter" | "gemini";
   apiKey: string;
-  baseUrl?: string;
+  model: string;
 }
 
-function getModelConfig(category: AgentCategory): ModelConfig {
-  const env = getEnv();
-
-  const categoryConfig: Record<AgentCategory, { primary: string; fallback?: string }> = {
-    CHAT: { primary: env.openrouterModel, fallback: env.geminiModel },
-    CODE: { primary: env.openrouterModel, fallback: env.geminiModel },
-    DATA: { primary: env.geminiModel, fallback: env.openrouterModel },
-    WORKFLOW: { primary: env.geminiModel, fallback: env.openrouterModel },
-  };
-
-  return {
-    provider: "stub",
-    model: "stub-model",
-    apiKey: "",
-    baseUrl: undefined,
-  };
-}
-
-interface Env {
-  openRouterApiKey: string;
-  geminiApiKey: string;
-  geminiModel: string;
-  openrouterModel: string;
-}
-
-function getEnv(): Env {
+function getEnv() {
   return {
     openRouterApiKey: process.env.OPENROUTER_API_KEY || "",
     geminiApiKey: process.env.GEMINI_API_KEY || "",
@@ -56,62 +30,69 @@ function getEnv(): Env {
   };
 }
 
-export async function complete(opts: CompletionOptions): Promise<CompletionResult> {
+const ROUTING_MATRIX: Record<AgentCategory, { primary: ProviderRoute; fallback?: ProviderRoute }> = {
+  CHAT: {
+    primary: { provider: "openrouter", apiKey: "", model: "meta-llama/llama-4-maverick:free" },
+    fallback: { provider: "gemini", apiKey: "", model: "gemini-2.5-flash" },
+  },
+  CODE: {
+    primary: { provider: "openrouter", apiKey: "", model: "meta-llama/llama-4-maverick:free" },
+    fallback: { provider: "gemini", apiKey: "", model: "gemini-2.5-flash" },
+  },
+  DATA: {
+    primary: { provider: "gemini", apiKey: "", model: "gemini-2.5-flash" },
+    fallback: { provider: "openrouter", apiKey: "", model: "meta-llama/llama-4-maverick:free" },
+  },
+  WORKFLOW: {
+    primary: { provider: "gemini", apiKey: "", model: "gemini-2.5-flash" },
+    fallback: { provider: "openrouter", apiKey: "", model: "meta-llama/llama-4-maverick:free" },
+  },
+};
+
+export function getRoutesForCategory(category: AgentCategory): ProviderRoute[] {
   const env = getEnv();
-  const { prompt, systemPrompt, category } = opts;
+  const routes = ROUTING_MATRIX[category] ?? ROUTING_MATRIX.CHAT;
 
-  const envs = getEnv();
-
-  const providerMap: Record<AgentCategory, { primary: { key: keyof Env; baseUrl: string }; fallback?: { key: keyof Env; baseUrl: string } }> = {
-    CHAT: {
-      primary: { key: "openRouterApiKey", baseUrl: "https://openrouter.ai/api/v1/chat/completions" },
-      fallback: { key: "geminiApiKey", baseUrl: `https://generativelanguage.googleapis.com/v1beta/models/${envs.geminiModel}:generateContent?key=${envs.geminiApiKey}` },
-    },
-    CODE: {
-      primary: { key: "openRouterApiKey", baseUrl: "https://openrouter.ai/api/v1/chat/completions" },
-      fallback: { key: "geminiApiKey", baseUrl: `https://generativelanguage.googleapis.com/v1beta/models/${envs.geminiModel}:generateContent?key=${envs.geminiApiKey}` },
-    },
-    DATA: {
-      primary: { key: "geminiApiKey", baseUrl: `https://generativelanguage.googleapis.com/v1beta/models/${envs.geminiModel}:generateContent?key=${envs.geminiApiKey}` },
-      fallback: { key: "openRouterApiKey", baseUrl: "https://openrouter.ai/api/v1/chat/completions" },
-    },
-    WORKFLOW: {
-      primary: { key: "geminiApiKey", baseUrl: `https://generativelanguage.googleapis.com/v1beta/models/${envs.geminiModel}:generateContent?key=${envs.geminiApiKey}` },
-      fallback: { key: "openRouterApiKey", baseUrl: "https://openrouter.ai/api/v1/chat/completions" },
-    },
-  };
-
-  const route = providerMap[category] ?? providerMap.CHAT;
-  const tried: string[] = [];
-  for (const candidate of [route.primary, route.fallback].filter(Boolean) as { key: keyof Env; baseUrl: string }[]) {
-    const apiKey = env[candidate.key];
+  const resolved: ProviderRoute[] = [];
+  for (const r of [routes.primary, routes.fallback].filter(Boolean) as ProviderRoute[]) {
+    const apiKey = r.provider === "openrouter" ? env.openRouterApiKey : env.geminiApiKey;
     if (!apiKey) continue;
+    resolved.push({ ...r, apiKey, model: r.provider === "openrouter" ? env.openrouterModel : env.geminiModel });
+  }
+  return resolved;
+}
+
+export async function complete(opts: CompletionOptions): Promise<CompletionResult> {
+  const { prompt, systemPrompt, category } = opts;
+  const routes = getRoutesForCategory(category);
+
+  for (const route of routes) {
     try {
-      const result = await callProvider({ baseUrl: candidate.baseUrl, apiKey, prompt, systemPrompt });
+      const result = await callProvider({ route, prompt, systemPrompt });
       if (result) return result;
     } catch (error) {
-      tried.push(candidate.baseUrl);
-      console.warn("provider failed", { url: candidate.baseUrl, error });
+      console.warn("provider failed", { provider: route.provider, error });
     }
   }
 
   return {
-    text: "[fallback] providers configured, but no successful response yet",
+    text: "[fallback] all providers failed",
     usage: { promptTokens: 0, completionTokens: 0 },
     provider: "fallback",
     model: "none",
   };
 }
 
-async function callProvider(opts: {
-  baseUrl: string;
-  apiKey: string;
+export async function callProvider(opts: {
+  route: ProviderRoute;
   prompt: string;
   systemPrompt?: string;
 }): Promise<CompletionResult | null> {
-  const { baseUrl, apiKey, prompt, systemPrompt } = opts;
+  const { route, prompt, systemPrompt } = opts;
 
-  if (baseUrl.includes("generativelanguage.googleapis.com")) {
+  if (route.provider === "gemini") {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${route.model}:generateContent`;
+
     const payload = {
       contents: [
         {
@@ -122,9 +103,12 @@ async function callProvider(opts: {
       generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
     };
 
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": route.apiKey,
+      },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(30_000),
     });
@@ -141,23 +125,25 @@ async function callProvider(opts: {
       text: output,
       usage: { promptTokens: 0, completionTokens: 0 },
       provider: "gemini",
-      model: "unknown",
+      model: route.model,
     };
   }
 
+  const url = "https://openrouter.ai/api/v1/chat/completions";
+
   const body = {
-    model: process.env.OPENROUTER_MODEL || "meta-llama/llama-4-maverick:free",
+    model: route.model,
     messages: [
       ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
       { role: "user", content: prompt },
     ],
-    max_tokens: Number(process.env.OPENROUTER_MAX_TOKENS ?? 1024),
-    temperature: Number(process.env.OPENROUTER_TEMPERATURE ?? 0.7),
+    max_tokens: 1024,
+    temperature: 0.7,
   };
 
-  const res = await fetch(baseUrl, {
+  const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${route.apiKey}` },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(30_000),
   });
@@ -177,6 +163,6 @@ async function callProvider(opts: {
     text: output,
     usage,
     provider: "openrouter",
-    model: data?.model ?? "unknown",
+    model: data?.model ?? route.model,
   };
 }

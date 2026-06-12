@@ -31,11 +31,9 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt }
 
     setInput("");
     setError("");
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setRunning(true);
 
-    const userMsg = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
+    setMessages((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
     try {
       const res = await fetch(`/api/agents/${slug}/execute`, {

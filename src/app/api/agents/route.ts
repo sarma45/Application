@@ -1,14 +1,37 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!["CREATOR", "MODERATOR", "ADMIN", "ENTERPRISE"].includes(session.user.role)) {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { role: "CREATOR" },
+    });
+    await prisma.creatorProfile.upsert({
+      where: { userId: session.user.id },
+      update: {},
+      create: { userId: session.user.id },
+    });
+    await prisma.auditLog.create({
+      data: {
+        actorId: session.user.id,
+        action: "user_upgraded_creator",
+        targetType: "User",
+        targetId: session.user.id,
+        metadata: JSON.stringify({ reason: "first_agent_publish" }),
+      },
+    });
+    session.user.role = "CREATOR";
   }
 
   try {
