@@ -31,14 +31,21 @@ export async function POST(req: Request) {
   }
 
   try {
+    const existing = await prisma.referral.findFirst({
+      where: { referrerId: session.user.id },
+    });
+
+    if (existing) {
+      return NextResponse.json({ code: existing.code }, { status: 200 });
+    }
+
     const code = crypto.randomBytes(4).toString("hex");
 
     const referral = await prisma.referral.create({
       data: {
         referrerId: session.user.id,
-        refereeId: session.user.id,
         code,
-        status: "PENDING",
+        status: "ACTIVE",
       },
     });
 
@@ -86,15 +93,19 @@ export async function PUT(req: Request) {
         create: { userId: referral.referrerId, balance: 50, lifetimeEarned: 50, lifetimeSpent: 0 },
       });
 
+      const refWallet = await tx.wallet.findUnique({
+        where: { userId: referral.referrerId },
+        select: { balance: true },
+      });
+
       await tx.transaction.create({
         data: {
           userId: referral.referrerId,
           type: "BONUS",
           amount: 50,
-          balanceAfter: { increment: 50 },
+          balanceAfter: (refWallet?.balance ?? 0) + 50,
           referenceType: "Referral",
           referenceId: referral.id,
-          description: "Referral bonus",
         },
       });
     });

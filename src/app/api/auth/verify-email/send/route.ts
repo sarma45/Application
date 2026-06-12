@@ -7,6 +7,22 @@ import crypto from "crypto";
 
 export const runtime = "nodejs";
 
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    const { Resend } = await import("resend");
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: "noreply@aiverse.ai",
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    logger.warn("Failed to send email", { error: String(error) });
+  }
+}
+
 export async function POST() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -35,20 +51,11 @@ export async function POST() {
 
     const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify-email?token=${token}`;
 
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: "noreply@aiverse.ai",
-          to: session.user.email!,
-          subject: "Verify your AIVerse email",
-          html: `<p>Click <a href="${verifyUrl}">here</a> to verify your email. This link expires in 24 hours.</p>`,
-        });
-      } catch (emailError) {
-        logger.warn("Failed to send verification email", { error: String(emailError) });
-      }
-    }
+    await sendEmail(
+      session.user.email!,
+      "Verify your AIVerse email",
+      `<p>Click <a href="${verifyUrl}">here</a> to verify your email. This link expires in 24 hours.</p>`
+    );
 
     logger.info("Verification email sent", { userId: session.user.id });
 

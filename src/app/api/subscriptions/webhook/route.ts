@@ -33,25 +33,25 @@ export async function POST(req: Request) {
         const currentPeriodEnd = new Date();
         currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
 
-        await prisma.subscription.upsert({
-          where: { userId },
-          update: {
-            plan,
-            status: "active",
-            providerSubId: subscriptionId,
-            currentPeriodEnd,
-            stripeSessionId: checkoutSession.id,
-          },
-          create: {
-            userId,
-            plan,
-            status: "active",
-            provider: "stripe",
-            providerSubId: subscriptionId,
-            currentPeriodEnd,
-            stripeSessionId: checkoutSession.id,
-          },
-        });
+        const existing = await prisma.subscription.findFirst({ where: { userId } });
+        const data = {
+          plan,
+          status: "active" as const,
+          providerSubId: subscriptionId || null,
+          currentPeriodEnd,
+        };
+
+        if (existing) {
+          await prisma.subscription.update({ where: { id: existing.id }, data });
+        } else {
+          await prisma.subscription.create({
+            data: {
+              userId,
+              ...data,
+              providerSubId: subscriptionId || null,
+            },
+          });
+        }
 
         await prisma.user.update({
           where: { id: userId },
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
           data: {
             status: subscription.status === "active" ? "active" : "past_due",
             currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
           },
         });
       }

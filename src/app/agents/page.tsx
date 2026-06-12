@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { SearchBar } from "@/components/agent/search-bar";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
 const categories = ["ALL", "CHAT", "CODE", "DATA", "WORKFLOW"];
@@ -18,10 +19,12 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
 
   const where: Record<string, unknown> = { status: "APPROVED" };
   if (category !== "ALL") where.category = category;
-  if (query) where.OR = [
-    { name: { contains: query, mode: "insensitive" } },
-    { systemPrompt: { contains: query, mode: "insensitive" } },
-  ];
+  if (query) {
+    where.OR = [
+      { name: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+    ];
+  }
 
   const cacheKey = `agents:list:${category}:${query}`;
   let agents = await cacheGet<any[]>(cacheKey);
@@ -44,6 +47,10 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
         <Link href="/agents/create">
           <Button>Publish Agent</Button>
         </Link>
+      </div>
+
+      <div className="mb-6">
+        <SearchBar />
       </div>
 
       <div className="flex items-center gap-2 mb-6 flex-wrap">

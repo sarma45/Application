@@ -1,7 +1,6 @@
 export const requiredEnv = [
   "DATABASE_URL",
   "AUTH_SECRET",
-  "REDIS_URL",
 ] as const;
 
 export type RequiredEnv = typeof requiredEnv[number];

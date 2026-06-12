@@ -33,7 +33,6 @@ export async function GET(req: Request) {
       role: true,
       plan: true,
       isActive: true,
-      emailVerified: true,
       createdAt: true,
       _count: { select: { agents: true, agentExecutions: true } },
     },

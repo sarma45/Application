@@ -71,25 +71,24 @@ export const authOptions: NextAuthOptions = {
           where: { email: user.email! },
         });
         if (!existingUser) {
-          await prisma.user.create({
+          const newUser = await prisma.user.create({
             data: {
               email: user.email!,
               username: user.name?.toLowerCase().replace(/\s+/g, "_") || user.email!.split("@")[0],
               role: "USER",
               plan: "FREE",
               isActive: true,
-              emailVerified: new Date(),
             },
           });
           await prisma.wallet.upsert({
-            where: { userId: user.id },
+            where: { userId: newUser.id },
             update: {},
-            create: { userId: user.id, balance: 100, lifetimeEarned: 100, lifetimeSpent: 0 },
+            create: { userId: newUser.id, balance: 100, lifetimeEarned: 100, lifetimeSpent: 0 },
           });
         } else if (!existingUser.isActive) {
           await prisma.user.update({
             where: { id: existingUser.id },
-            data: { isActive: true, emailVerified: new Date() },
+            data: { isActive: true },
           });
         }
       }

@@ -1,0 +1,3 @@
+Contact: mailto:security@aiverse.ai
+Preferred-Languages: en
+Canonical: https://aiverse.ai/.well-known/security.txt

@@ -34,6 +34,7 @@ model User {
   sessions        Session[]
   passwordResets  PasswordReset[]
   emailVerifications EmailVerification[]
+  favorites       AgentFavorite[]
 }
 
 model Account {
@@ -97,14 +98,14 @@ model EmailVerification {
 model Referral {
   id          String   @id @default(cuid())
   referrerId  String
-  refereeId   String   @unique
+  refereeId   String?  @unique
   code        String   @unique
   status      String   @default("PENDING")
   rewardGiven Int      @default(0)
   createdAt   DateTime @default(now())
 
   referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referee  User @relation("Referee", fields: [refereeId], references: [id], onDelete: Cascade)
+  referee  User? @relation("Referee", fields: [refereeId], references: [id], onDelete: SetNull)
 
   @@index([referrerId])
   @@index([code])
@@ -147,13 +148,14 @@ model Agent {
   versions   AgentVersion[]
   reviews    AgentReview[]
   executions AgentExecution[]
+  favorites  AgentFavorite[]
 
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@index([status, category])
   @@index([slug])
   @@index([tags])
-  @@index([name, description], type: Gin)
+  @@index([name])
 }
 
 model AgentVersion {

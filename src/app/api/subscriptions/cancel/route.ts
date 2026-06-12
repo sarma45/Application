@@ -14,7 +14,7 @@ export async function POST() {
   }
 
   try {
-    const subscription = await prisma.subscription.findUnique({
+    let subscription = await prisma.subscription.findFirst({
       where: { userId: session.user.id },
     });
 
@@ -28,8 +28,8 @@ export async function POST() {
       });
     }
 
-    await prisma.subscription.update({
-      where: { userId: session.user.id },
+    subscription = await prisma.subscription.update({
+      where: { id: subscription.id },
       data: { cancelAtPeriodEnd: true, status: "canceling" },
     });
 

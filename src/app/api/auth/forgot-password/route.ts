@@ -5,6 +5,22 @@ import crypto from "crypto";
 
 export const runtime = "nodejs";
 
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    const { Resend } = await import("resend");
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: "noreply@aiverse.ai",
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    logger.warn("Failed to send email", { error: String(error) });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
@@ -37,20 +53,11 @@ export async function POST(req: Request) {
 
     logger.info("Password reset requested", { userId: user.id });
 
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: "noreply@aiverse.ai",
-          to: normalizedEmail,
-          subject: "Reset your AIVerse password",
-          html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 1 hour.</p>`,
-        });
-      } catch (emailError) {
-        logger.warn("Failed to send password reset email", { error: String(emailError) });
-      }
-    }
+    await sendEmail(
+      normalizedEmail,
+      "Reset your AIVerse password",
+      `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 1 hour.</p>`
+    );
 
     return NextResponse.json({
       ok: true,

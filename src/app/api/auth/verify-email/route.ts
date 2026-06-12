@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: verification.userId },
-        data: { isActive: true, emailVerified: new Date() },
+        data: { isActive: true },
       });
       await tx.emailVerification.update({
         where: { id: verification.id },

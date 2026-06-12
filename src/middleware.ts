@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 
 const authPaths = ["/api/auth/login", "/api/auth/register", "/api/auth/forgot-password"];
 
+const rateLimits = new Map<string, { count: number; reset: number }>();
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -14,36 +16,26 @@ export async function middleware(request: NextRequest) {
     const zone = authPaths.some(p => pathname.startsWith(p)) ? "auth" : "api";
     const windowMs = zone === "auth" ? 300000 : 60000;
     const maxReqs = zone === "auth" ? 10 : 100;
+    const key = `${zone}:${ip}`;
 
-    try {
-      const { default: Redis } = await import("ioredis");
-      const redisUrl = process.env.REDIS_URL;
-      if (redisUrl) {
-        const redis = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 });
-        const key = `rate:${zone}:${ip}`;
-        const count = await redis.incr(key);
-        if (count === 1) await redis.expire(key, Math.ceil(windowMs / 1000));
-        const ttl = await redis.ttl(key);
-        await redis.quit();
+    const now = Date.now();
+    const record = rateLimits.get(key);
 
-        if (count > maxReqs) {
-          return NextResponse.json(
-            { error: "Too many requests. Please slow down." },
-            { status: 429, headers: { "Retry-After": String(Math.ceil(ttl)) } }
-          );
-        }
-
-        const remaining = Math.max(0, maxReqs - count);
-        const response = NextResponse.next();
-        response.headers.set("X-RateLimit-Remaining", String(remaining));
-        response.headers.set("X-RateLimit-Reset", String(Math.ceil(Date.now() / 1000) + ttl));
-        return response;
+    if (record && now < record.reset) {
+      record.count++;
+      if (record.count > maxReqs) {
+        return NextResponse.json(
+          { error: "Too many requests. Please slow down." },
+          { status: 429, headers: { "Retry-After": "60" } }
+        );
       }
-    } catch {
-      // Redis unavailable - fall through to in-memory rate limiting
+    } else {
+      rateLimits.set(key, { count: 1, reset: now + windowMs });
     }
 
+    const remaining = maxReqs - (rateLimits.get(key)?.count ?? 0);
     const response = NextResponse.next();
+    response.headers.set("X-RateLimit-Remaining", String(Math.max(0, remaining)));
     return response;
   }
 
