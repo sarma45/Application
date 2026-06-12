@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         name,
         slug,
         category,
-        status: "PENDING",
+        status: "DRAFT",
         systemPrompt: systemPrompt || "",
         pricingType: pricingType || "FREE",
         creditsPerRun: creditsPerRun || 0,
@@ -90,7 +90,7 @@ export async function GET(req: Request) {
     q: searchParams.get("q"),
   });
 
-  const where: Record<string, unknown> = { status: "PUBLISHED" };
+  const where: Record<string, unknown> = { status: "APPROVED" };
   if (params.category && params.category !== "ALL") where.category = params.category;
   if (params.q) {
     where.OR = [

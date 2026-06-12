@@ -54,7 +54,7 @@ export function Navbar({ session }: { session: any }) {
                   Credits
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/settings">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-600 text-xs font-medium text-white">
                     {(user.email || "U")[0].toUpperCase()}

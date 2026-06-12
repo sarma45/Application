@@ -92,7 +92,12 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
           <Card>
             <CardHeader>
-              <h2 className="font-semibold text-zinc-100">Run Agent</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-zinc-100">Run Agent</h2>
+                {isCreator && (
+                  <span className="text-xs text-purple-400">Test Mode active - no credits deducted</span>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <AgentRunner
@@ -103,6 +108,8 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
                 systemPrompt={agent.systemPrompt}
                 pricingType={agent.pricingType}
                 creditsPerRun={agent.creditsPerRun}
+                isTestMode={isCreator}
+                isCreator={isCreator}
               />
             </CardContent>
           </Card>

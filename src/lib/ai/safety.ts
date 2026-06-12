@@ -100,31 +100,58 @@ export function checkToxicity(input: string): SafetyResult {
   return { safe: true, score: 100 };
 }
 
-// In-memory trust store (replace with Redis in production)
-const trustStore = new Map<string, TrustScore>();
+import { redis } from "@/lib/redis";
 
-export function getTrustScore(userId: string): TrustScore {
-  if (!trustStore.has(userId)) {
-    trustStore.set(userId, { userId, score: 100, violations: 0, lastViolationAt: null });
-  }
-  return trustStore.get(userId)!;
+const TRUST_KEY_PREFIX = "trust:";
+
+function trustKey(userId: string): string {
+  return `${TRUST_KEY_PREFIX}${userId}`;
 }
 
-export function recordViolation(userId: string, reason: string): TrustScore {
-  const trust = getTrustScore(userId);
+// In-memory fallback when Redis is unavailable
+const memoryStore = new Map<string, TrustScore>();
+
+function getMemoryStore(userId: string): TrustScore {
+  if (!memoryStore.has(userId)) {
+    memoryStore.set(userId, { userId, score: 100, violations: 0, lastViolationAt: null });
+  }
+  return memoryStore.get(userId)!;
+}
+
+export async function getTrustScore(userId: string): Promise<TrustScore> {
+  if (redis && redis.status === "ready") {
+    try {
+      const data = await redis.get(trustKey(userId));
+      if (data) return JSON.parse(data);
+    } catch {
+      // fall through to default
+    }
+  }
+  return getMemoryStore(userId);
+}
+
+export async function recordViolation(userId: string, reason: string): Promise<TrustScore> {
+  const trust = redis && redis.status === "ready"
+    ? await getTrustScore(userId)
+    : getMemoryStore(userId);
+
   trust.violations += 1;
   trust.score = Math.max(0, trust.score - 15 * trust.violations);
   trust.lastViolationAt = new Date().toISOString();
-  trustStore.set(userId, trust);
 
-  if (trust.score <= 0) {
-    trust.score = 0;
+  if (redis && redis.status === "ready") {
+    try {
+      await redis.setex(trustKey(userId), 86400, JSON.stringify(trust));
+    } catch {
+      // silently fail
+    }
   }
+
   return trust;
 }
 
-export function isSuspended(userId: string): boolean {
-  const trust = getTrustScore(userId);
+export async function isSuspended(userId: string): Promise<boolean> {
+  const trust = await getTrustScore(userId);
   return trust.score <= 0 || trust.violations >= 7;
 }
 
@@ -145,9 +172,9 @@ export function sanitizeInput(input: string): string {
   return cleaned;
 }
 
-export function checkSafety(input: string, userId?: string): SafetyResult {
+export async function checkSafety(input: string, userId?: string): Promise<SafetyResult> {
   if (userId) {
-    const trust = getTrustScore(userId);
+    const trust = await getTrustScore(userId);
     if (trust.score <= 0) {
       return { safe: false, reason: "Account suspended due to repeated violations", score: 0 };
     }
@@ -155,25 +182,33 @@ export function checkSafety(input: string, userId?: string): SafetyResult {
 
   const injection = checkPromptInjection(input);
   if (!injection.safe) {
-    if (userId) recordViolation(userId, injection.reason || "prompt_injection");
+    if (userId) await recordViolation(userId, injection.reason || "prompt_injection");
     return injection;
   }
 
   const pii = checkPII(input);
   if (!pii.safe) {
-    if (userId) recordViolation(userId, pii.reason || "pii_detected");
+    if (userId) await recordViolation(userId, pii.reason || "pii_detected");
     return pii;
   }
 
   const toxicity = checkToxicity(input);
   if (!toxicity.safe) {
-    if (userId) recordViolation(userId, toxicity.reason || "toxic_content");
+    if (userId) await recordViolation(userId, toxicity.reason || "toxic_content");
     return toxicity;
   }
 
-  return { safe: true, score: userId ? getTrustScore(userId).score : 100 };
+  const trust = userId ? await getTrustScore(userId) : null;
+  return { safe: true, score: trust?.score ?? 100 };
 }
 
-export function resetTrustScore(userId: string) {
-  trustStore.set(userId, { userId, score: 100, violations: 0, lastViolationAt: null });
+export async function resetTrustScore(userId: string) {
+  memoryStore.delete(userId);
+  if (redis && redis.status === "ready") {
+    try {
+      await redis.del(trustKey(userId));
+    } catch {
+      // silently fail
+    }
+  }
 }

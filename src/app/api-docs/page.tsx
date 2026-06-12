@@ -101,83 +101,81 @@ function MethodBadge({ method }: { method: string }) {
 
 export default function ApiDocsPage() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-2">API Documentation</h1>
-        <p className="text-gray-400 mb-8">
-          AIVerse 2.0 REST API &mdash; base URL: <code className="text-cyan-400">{process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}</code>
+    <div className="container-main py-8">
+      <h1 className="text-2xl font-bold text-white mb-2">API Documentation</h1>
+      <p className="text-sm text-zinc-500 mb-8">
+        AIVerse 2.0 REST API &mdash; base URL: <code className="text-purple-400">{process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}</code>
+      </p>
+
+      <div className="mb-8 p-4 rounded-lg border border-zinc-800 bg-zinc-900/50">
+        <h2 className="text-lg font-semibold text-zinc-100 mb-2">Authentication</h2>
+        <p className="text-sm text-zinc-500 mb-2">
+          Most endpoints require a valid session cookie (HTTP-only, set by NextAuth). Include credentials or the
+          <code className="text-purple-400"> next-auth.session-token</code> cookie.
         </p>
+        <p className="text-sm text-zinc-500">
+          Admin endpoints require the <code className="text-purple-400">ADMIN</code> or <code className="text-purple-400">MODERATOR</code> role.
+        </p>
+      </div>
 
-        <div className="mb-8 p-4 bg-gray-900 rounded-lg border border-gray-800">
-          <h2 className="text-lg font-semibold mb-2">Authentication</h2>
-          <p className="text-sm text-gray-400 mb-2">
-            Most endpoints require a valid session cookie (HTTP-only, set by NextAuth). Include credentials or the
-            <code className="text-cyan-400"> next-auth.session-token</code> cookie.
-          </p>
-          <p className="text-sm text-gray-400">
-            Admin endpoints require the <code className="text-cyan-400">ADMIN</code> or <code className="text-cyan-400">MODERATOR</code> role.
-          </p>
-        </div>
-
-        {API_ENDPOINTS.map((group) => (
-          <div key={group.group} className="mb-10">
-            <h2 className="text-xl font-semibold mb-4 border-b border-gray-800 pb-2">
-              {group.group}
-            </h2>
-            <div className="space-y-3">
-              {group.endpoints.map((ep) => (
-                <div
-                  key={`${ep.method}-${ep.path}`}
-                  className="flex items-start gap-3 p-3 bg-gray-900/50 rounded-lg border border-gray-800/50"
-                >
-                  <div className="shrink-0 pt-0.5">
-                    <MethodBadge method={ep.method} />
-                  </div>
-                  <div className="min-w-0">
-                    <code className="text-sm font-mono text-gray-200 break-all">
-                      {ep.path}
-                    </code>
-                    <p className="text-sm text-gray-400 mt-0.5">{ep.desc}</p>
-                  </div>
-                  <div className="ml-auto shrink-0">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded font-medium ${
-                        ep.auth
-                          ? "bg-yellow-900/50 text-yellow-400"
-                          : "bg-green-900/50 text-green-400"
-                      }`}
-                    >
-                      {ep.auth ? "Auth required" : "Public"}
-                    </span>
-                  </div>
+      {API_ENDPOINTS.map((group) => (
+        <div key={group.group} className="mb-10">
+          <h2 className="text-lg font-semibold text-white mb-4 border-b border-zinc-800 pb-2">
+            {group.group}
+          </h2>
+          <div className="space-y-3">
+            {group.endpoints.map((ep) => (
+              <div
+                key={`${ep.method}-${ep.path}`}
+                className="flex items-start gap-3 p-3 rounded-lg border border-zinc-800/50 bg-zinc-900/30"
+              >
+                <div className="shrink-0 pt-0.5">
+                  <MethodBadge method={ep.method} />
                 </div>
-              ))}
-            </div>
+                <div className="min-w-0 flex-1">
+                  <code className="text-sm font-mono text-zinc-200 break-all">
+                    {ep.path}
+                  </code>
+                  <p className="text-sm text-zinc-500 mt-0.5">{ep.desc}</p>
+                </div>
+                <div className="shrink-0">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded font-medium ${
+                      ep.auth
+                        ? "bg-yellow-900/50 text-yellow-400"
+                        : "bg-emerald-900/50 text-emerald-400"
+                    }`}
+                  >
+                    {ep.auth ? "Auth required" : "Public"}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+      ))}
 
-        <div className="mt-12 p-6 bg-gray-900 rounded-lg border border-gray-800">
-          <h2 className="text-lg font-semibold mb-3">Error Response Format</h2>
-          <pre className="text-sm text-gray-300 bg-gray-950 p-3 rounded overflow-x-auto">
+      <div className="mt-12 p-6 rounded-lg border border-zinc-800 bg-zinc-900/50">
+        <h2 className="text-lg font-semibold text-zinc-100 mb-3">Error Response Format</h2>
+        <pre className="text-sm text-zinc-300 bg-zinc-950 p-3 rounded overflow-x-auto">
 {`{
   "error": "Human-readable error message"
 }`}
-          </pre>
-        </div>
+        </pre>
+      </div>
 
-        <div className="mt-6 p-6 bg-gray-900 rounded-lg border border-gray-800">
-          <h2 className="text-lg font-semibold mb-3">Pagination</h2>
-          <p className="text-sm text-gray-400 mb-2">
-            List endpoints use cursor-based pagination. Include <code className="text-cyan-400">?cursor=&lt;id&gt;&limit=20</code> to paginate.
-            The response returns <code className="text-cyan-400">nextCursor</code> (null if last page).
-          </p>
-          <pre className="text-sm text-gray-300 bg-gray-950 p-3 rounded overflow-x-auto">
+      <div className="mt-6 p-6 rounded-lg border border-zinc-800 bg-zinc-900/50">
+        <h2 className="text-lg font-semibold text-zinc-100 mb-3">Pagination</h2>
+        <p className="text-sm text-zinc-500 mb-2">
+          List endpoints use cursor-based pagination. Include <code className="text-purple-400">?cursor=&lt;id&gt;&limit=20</code> to paginate.
+          The response returns <code className="text-purple-400">nextCursor</code> (null if last page).
+        </p>
+        <pre className="text-sm text-zinc-300 bg-zinc-950 p-3 rounded overflow-x-auto">
 {`{
   "data": [...],
   "nextCursor": "abc123" | null
 }`}
-          </pre>
-        </div>
+        </pre>
       </div>
     </div>
   );

@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatCredits, formatDate } from "@/lib/utils";
 
 interface Payout {
   id: string;
@@ -21,73 +25,72 @@ export default function PayoutsPage() {
       fetch("/api/wallet").then((r) => r.json()),
     ]).then(([payoutData, walletData]) => {
       setPayouts(payoutData.data || []);
-      setBalance(walletData.balance || 0);
+      setBalance(walletData.wallet?.balance || 0);
       setLoading(false);
     });
   }, []);
 
-  if (loading) return <div className="min-h-screen bg-gray-950 text-gray-100 p-8">Loading...</div>;
+  if (loading) return <div className="container-main py-8"><p className="text-zinc-500">Loading...</p></div>;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-2">Payouts</h1>
-        <p className="text-gray-400 mb-8">Manage your earnings and request payouts.</p>
+    <div className="container-main py-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-white">Payouts</h1>
+        <p className="text-sm text-zinc-500">Manage your earnings and request payouts</p>
+      </div>
 
-        <div className="grid gap-6 md:grid-cols-2 mb-10">
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-            <p className="text-sm text-gray-400">Available Balance</p>
-            <p className="text-3xl font-bold text-emerald-400">${(balance * 0.001).toFixed(2)}</p>
-            <p className="text-xs text-gray-500">{balance} credits (1000 credits = $1)</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-            <p className="text-sm text-gray-400">Total Payouts</p>
-            <p className="text-3xl font-bold text-cyan-400">{payouts.length}</p>
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 mb-8">
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-zinc-500">Available Balance</p>
+            <p className="text-3xl font-bold text-emerald-400 mt-1">${(balance * 0.001).toFixed(2)}</p>
+            <p className="text-xs text-zinc-600 mt-1">{formatCredits(balance)} credits (1000 credits = $1)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-sm text-zinc-500">Total Payouts</p>
+            <p className="text-3xl font-bold text-white mt-1">{payouts.length}</p>
+          </CardContent>
+        </Card>
+      </div>
 
-        <form
-          action="/api/payouts/request"
-          method="POST"
-          className="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-10"
-        >
-          <h2 className="text-xl font-semibold mb-4">Request Payout</h2>
-          <p className="text-sm text-gray-400 mb-4">
+      <Card className="mb-8">
+        <CardContent className="p-5">
+          <h2 className="text-lg font-semibold text-zinc-100 mb-4">Request Payout</h2>
+          <p className="text-sm text-zinc-500 mb-4">
             Minimum payout: $10 equivalent (10,000 credits). Payouts processed on the 1st of each month.
           </p>
-          <button
-            type="submit"
-            className="py-2 px-6 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors"
-          >
-            Request Payout
-          </button>
-        </form>
+          <form action="/api/payouts/request" method="POST">
+            <Button type="submit" variant="primary">Request Payout</Button>
+          </form>
+        </CardContent>
+      </Card>
 
-        <h2 className="text-xl font-semibold mb-4">Payout History</h2>
-        <div className="space-y-3">
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-zinc-100">Payout History</h2>
+        </CardHeader>
+        <CardContent>
           {payouts.length === 0 ? (
-            <p className="text-gray-500">No payouts yet.</p>
+            <p className="text-sm text-zinc-500">No payouts yet</p>
           ) : (
-            payouts.map((p) => (
-              <div key={p.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center">
-                <div>
-                  <p className="font-medium">${p.amountUsd}</p>
-                  <p className="text-sm text-gray-400">{new Date(p.createdAt).toLocaleDateString()}</p>
+            <div className="space-y-3">
+              {payouts.map((p) => (
+                <div key={p.id} className="flex items-center justify-between py-3 border-b border-zinc-800 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">${p.amountUsd}</p>
+                    <p className="text-xs text-zinc-600">{formatDate(p.createdAt)}</p>
+                  </div>
+                  <Badge variant={p.status === "COMPLETED" ? "success" : p.status === "PENDING" ? "warning" : "danger"}>
+                    {p.status}
+                  </Badge>
                 </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded font-medium ${
-                    p.status === "COMPLETED" ? "bg-emerald-900/50 text-emerald-400" :
-                    p.status === "PENDING" ? "bg-yellow-900/50 text-yellow-400" :
-                    "bg-red-900/50 text-red-400"
-                  }`}
-                >
-                  {p.status}
-                </span>
-              </div>
-            ))
+              ))}
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

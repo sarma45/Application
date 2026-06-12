@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 interface AgentRunnerProps {
@@ -11,18 +11,29 @@ interface AgentRunnerProps {
   systemPrompt?: string | null;
   pricingType: string;
   creditsPerRun: number;
+  isTestMode?: boolean;
+  isCreator?: boolean;
 }
 
-export function AgentRunner({ agentId, slug, agentName, category, systemPrompt }: AgentRunnerProps) {
+export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, isTestMode, isCreator }: AgentRunnerProps) {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleClear = useCallback(() => {
+    setMessages([]);
+    setSessionId(null);
+    sessionIdRef.current = null;
+    setError("");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +55,8 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt }
           agentId,
           category,
           systemPrompt,
+          sessionId: sessionIdRef.current,
+          _test: isTestMode || undefined,
         }),
       });
 
@@ -71,6 +84,10 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt }
             if (data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
+              if (parsed.sessionId && !sessionIdRef.current) {
+                sessionIdRef.current = parsed.sessionId;
+                setSessionId(parsed.sessionId);
+              }
               if (parsed.text) {
                 assistantMessage += parsed.text;
                 setMessages((prev) => {
@@ -104,10 +121,24 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt }
 
   return (
     <div className="flex flex-col h-[600px]">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+        <span className="text-xs text-zinc-500">
+          {isTestMode ? "Test Mode - no credits deducted" : ""}
+          {sessionId ? `Session active` : ""}
+        </span>
+        {messages.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={handleClear}>
+            Clear
+          </Button>
+        )}
+      </div>
       <div className="flex-1 overflow-y-auto space-y-4 p-4">
         {messages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-zinc-500">Run {agentName} by sending a message</p>
+            {isCreator && (
+              <p className="text-xs text-zinc-600 mt-2">Creator: use Test Mode to try without spending credits</p>
+            )}
           </div>
         )}
         {messages.map((msg, i) => (

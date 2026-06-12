@@ -33,6 +33,8 @@ export const executeSchema = z.object({
   message: z.string().min(1).max(50000),
   systemPrompt: z.string().max(10000).optional(),
   category: z.enum(["CHAT", "CODE", "DATA", "WORKFLOW"]).optional(),
+  sessionId: z.string().max(200).optional(),
+  _test: z.boolean().optional(),
 });
 
 export const chatSchema = z.object({
