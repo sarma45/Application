@@ -8,30 +8,31 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma migrate dev --name init",
+    "db:push": "prisma db push",
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down -v"
   },
   "dependencies": {
+    "@prisma/client": "5.22.0",
     "@types/bcrypt": "^6.0.0",
-    "@types/pg": "^8.20.0",
     "bcrypt": "^6.0.0",
-    "next": "latest",
-    "next-auth": "4.24.14",
+    "next": "14.2.29",
+    "next-auth": "4.24.11",
     "pg": "^8.21.0",
-    "react": "latest",
-    "react-dom": "latest",
-    "zod": "latest"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@prisma/cli": "6.19.3",
-    "@tailwindcss/postcss": "^4.3.0",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "prisma": "^6.19.3",
-    "tailwindcss": "latest",
-    "typescript": "latest"
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "14.2.29",
+    "postcss": "^8.5.0",
+    "prisma": "5.22.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
   }
 }

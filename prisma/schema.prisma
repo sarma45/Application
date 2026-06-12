@@ -16,16 +16,35 @@ model User {
   plan          String    @default("FREE")
   planExpiresAt DateTime?
   isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
 
-  creatorProfile   CreatorProfile?
-  wallets          Wallet[]
-  subscriptions    Subscription[]
-  agentReviews     AgentReview[]
-  agentExecutions  AgentExecution[]
-  auditLogs        AuditLog[]        @relation("AuditActor")
-  payouts          CreatorPayout[]
-  agents           Agent[]
-  payments         Payment[]
+  creatorProfile  CreatorProfile?
+  wallets         Wallet[]
+  subscriptions   Subscription[]
+  agentReviews    AgentReview[]
+  agentExecutions AgentExecution[]
+  auditLogs       AuditLog[]        @relation("AuditActor")
+  payouts         CreatorPayout[]
+  agents          Agent[]
+  payments        Payment[]
+  referralsMade   Referral[]        @relation("Referrer")
+  referralsRedeemed Referral[]      @relation("Referee")
+}
+
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  refereeId   String   @unique
+  code        String   @unique
+  status      String   @default("PENDING")
+  rewardGiven Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee  User @relation("Referee", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([code])
 }
 
 model CreatorProfile {
@@ -48,18 +67,23 @@ model Agent {
   category      String
   status        String   @default("DRAFT")
   pricingType   String   @default("FREE")
-  creditsPerRun Int
+  creditsPerRun Int      @default(0)
   modelProvider String
   systemPrompt  String?
   toolsConfig   String?
   totalRuns     Int      @default(0)
   avgRating     Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  versions    AgentVersion[]
-  reviews     AgentReview[]
-  executions  AgentExecution[]
+  versions   AgentVersion[]
+  reviews    AgentReview[]
+  executions AgentExecution[]
 
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([status, category])
+  @@index([slug])
 }
 
 model AgentVersion {
@@ -68,6 +92,7 @@ model AgentVersion {
   version   String
   changelog String?
   config    String?
+  createdAt DateTime @default(now())
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
@@ -97,9 +122,9 @@ model AgentExecution {
   userId      String
   sessionId   String?
   tokens      Int?
-  creditsUsed Int
+  creditsUsed Int      @default(0)
   durationMs  Int?
-  status      String
+  status      String   @default("PENDING")
   modelUsed   String?
   createdAt   DateTime @default(now())
 
@@ -124,14 +149,14 @@ model Wallet {
 }
 
 model Transaction {
-  id           String   @id @default(cuid())
-  userId       String
-  type         String
-  amount       Int
-  balanceAfter Int
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  amount        Int
+  balanceAfter  Int
   referenceType String?
   referenceId   String?
-  createdAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   wallet Wallet @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -145,31 +170,32 @@ model Subscription {
   providerSubId    String?
   status           String    @default("active")
   currentPeriodEnd DateTime?
+  createdAt        DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
-  id               String   @id @default(cuid())
-  userId           String
-  provider         String
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
   providerPaymentId String?
-  amountUsd        Decimal  @db.Decimal(10, 2)
-  creditsGranted   Int?
-  status           String
-  createdAt        DateTime @default(now())
+  amountUsd         Decimal  @db.Decimal(10, 2)
+  creditsGranted    Int?
+  status            String
+  createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CreatorPayout {
-  id             String   @id @default(cuid())
-  creatorId      String
-  amountUsd      Decimal  @db.Decimal(10, 2)
+  id              String   @id @default(cuid())
+  creatorId       String
+  amountUsd       Decimal  @db.Decimal(10, 2)
   creditsRedeemed Int?
-  status         String
-  payoutMethod   String?
-  createdAt      DateTime @default(now())
+  status          String
+  payoutMethod    String?
+  createdAt       DateTime @default(now())
 
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 }
