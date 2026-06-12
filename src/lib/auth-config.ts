@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
@@ -13,11 +14,21 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        turnstileToken: { label: "Turnstile", type: "hidden" },
       },
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
+
+        const turnstileToken = credentials.turnstileToken as string | undefined;
+        if (turnstileToken) {
+          const valid = await verifyTurnstileToken(turnstileToken);
+          if (!valid) {
+            throw new Error("CaptchaFailed");
+          }
+        }
+
         const email = String(credentials.email).trim().toLowerCase();
         const password = String(credentials.password);
 

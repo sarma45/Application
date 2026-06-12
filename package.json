@@ -14,13 +14,17 @@
     "docker:down": "docker compose down -v"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1067.0",
     "@prisma/client": "5.22.0",
+    "@sentry/nextjs": "^10.57.0",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
-    "ioredis": "^5.11.1",
+    "bullmq": "^5.78.0",
+    "ioredis": "^5.10.1",
     "next": "14.2.29",
     "next-auth": "4.24.11",
     "pg": "^8.21.0",
+    "razorpay": "^2.9.6",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "resend": "^4.8.0",

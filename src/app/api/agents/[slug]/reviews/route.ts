@@ -1,63 +1,35 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
-import { createReviewSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 
-export async function POST(
+export async function GET(
   req: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { slug } = await params;
+  const url = new URL(req.url);
+  const cursor = url.searchParams.get("cursor");
+  const limit = Math.min(Number(url.searchParams.get("limit")) || 20, 100);
 
-  try {
-    const body = await req.json();
-    const parsed = createReviewSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
-    }
-
-    const agent = await prisma.agent.findUnique({ where: { slug } });
-    if (!agent) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-    }
-
-    if (agent.creatorId === session.user.id) {
-      return NextResponse.json({ error: "Cannot review your own agent" }, { status: 403 });
-    }
-
-    const review = await prisma.agentReview.upsert({
-      where: { agentId_userId: { agentId: agent.id, userId: session.user.id } },
-      update: { rating: parsed.data.rating, title: parsed.data.title, body: parsed.data.body },
-      create: {
-        agentId: agent.id,
-        userId: session.user.id,
-        rating: parsed.data.rating,
-        title: parsed.data.title,
-        body: parsed.data.body,
-      },
-    });
-
-    const avg = await prisma.agentReview.aggregate({
-      where: { agentId: agent.id },
-      _avg: { rating: true },
-    });
-
-    await prisma.agent.update({
-      where: { id: agent.id },
-      data: { avgRating: avg._avg.rating },
-    });
-
-    return NextResponse.json({ ok: true, review }, { status: 201 });
-  } catch (error) {
-    console.error("review error", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  const agent = await prisma.agent.findUnique({ where: { slug } });
+  if (!agent) {
+    return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
+
+  const reviews = await prisma.agentReview.findMany({
+    where: { agentId: agent.id },
+    orderBy: { createdAt: "desc" },
+    take: limit + 1,
+    include: {
+      user: { select: { username: true, id: true } },
+    },
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+  });
+
+  const hasMore = reviews.length > limit;
+  const items = hasMore ? reviews.slice(0, limit) : reviews;
+  const nextCursor = hasMore ? items[items.length - 1]?.id : null;
+
+  return NextResponse.json({ data: items, nextCursor });
 }

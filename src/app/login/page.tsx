@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,27 +8,70 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
+      getResponse: (widgetId: string) => string;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const turnstileRef = useRef<string | null>(null);
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      if (window.turnstile && turnstileContainerRef.current) {
+        turnstileRef.current = window.turnstile.render(turnstileContainerRef.current, {
+          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA",
+          theme: "dark",
+        });
+      }
+    };
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
+    let turnstileToken = "";
+    if (window.turnstile && turnstileRef.current) {
+      turnstileToken = window.turnstile.getResponse(turnstileRef.current);
+    }
+
     const form = new FormData(e.currentTarget);
     const result = await signIn("credentials", {
       email: form.get("email"),
       password: form.get("password"),
+      turnstileToken,
       redirect: false,
     });
 
     setLoading(false);
 
+    if (window.turnstile && turnstileRef.current) {
+      window.turnstile.reset(turnstileRef.current);
+    }
+
     if (result?.error) {
-      setError("Invalid email or password");
+      setError(result.error === "CaptchaFailed" ? "Captcha validation failed. Please try again." : "Invalid email or password");
       return;
     }
 
@@ -52,6 +95,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" required />
             <Input id="password" name="password" label="Password" type="password" placeholder="Enter your password" required />
+            <div ref={turnstileContainerRef} className="flex justify-center" />
             {error && <p className="text-sm text-red-400">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               Sign in

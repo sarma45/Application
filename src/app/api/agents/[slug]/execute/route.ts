@@ -7,6 +7,7 @@ import type { AgentCategory } from "@/lib/ai/gateway";
 import { cacheDel } from "@/lib/redis";
 import { executeSchema } from "@/lib/validations";
 import { checkSafety, sanitizeInput } from "@/lib/ai/safety";
+import { enqueueExecutionLog } from "@/lib/queue";
 
 export const runtime = "nodejs";
 
@@ -216,19 +217,13 @@ export async function POST(
           });
         }
 
-        await prisma.agent.update({
-          where: { id: agent.id },
-          data: { totalRuns: { increment: 1 } },
-        });
-
-        await prisma.agentExecution.create({
-          data: {
-            agentId: agent.id,
-            userId: session.user.id,
-            creditsUsed: cost,
-            status: "COMPLETED",
-            modelUsed: usedModel || undefined,
-          },
+        enqueueExecutionLog({
+          agentId: agent.id,
+          userId: session.user.id,
+          creditsUsed: cost,
+          status: "COMPLETED",
+          modelUsed: usedModel || undefined,
+          provider: usedProvider || undefined,
         });
 
         await cacheDel(`agent:${slug}`);

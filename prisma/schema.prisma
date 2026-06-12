@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
@@ -35,6 +36,7 @@ model User {
   passwordResets  PasswordReset[]
   emailVerifications EmailVerification[]
   favorites       AgentFavorite[]
+  files           File[]
 }
 
 model Account {
@@ -116,7 +118,7 @@ model CreatorProfile {
   userId        String   @unique
   bio           String?
   payoutMethod  String?
-  payoutAccount String?
+  payoutAccount Json?
   totalEarned   Float    @default(0)
   createdAt     DateTime @default(now())
 
@@ -136,7 +138,7 @@ model Agent {
   modelProvider String   @default("openrouter")
   modelId       String?
   systemPrompt  String?  @db.Text
-  toolsConfig   String?  @db.Text
+  toolsConfig   Json?
   tags          String[]
   isFeatured    Boolean  @default(false)
   totalRuns     Int      @default(0)
@@ -305,6 +307,41 @@ model CreatorPayout {
 
   @@index([creatorId, createdAt])
   @@index([status])
+}
+
+model File {
+  id         String   @id @default(cuid())
+  userId     String
+  fileName   String
+  fileType   String
+  fileSize   Int
+  storageKey String
+  publicUrl  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([storageKey])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  event     String
+  userId    String?
+  metadata  Json?
+  sessionId String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
 }
 
 model AuditLog {

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
+import { uploadFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -44,13 +46,27 @@ export async function POST(req: Request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString("base64");
+    const key = `uploads/${session.user.id}/${Date.now()}-${file.name}`;
+
+    const url = await uploadFile(key, buffer, file.type);
+
+    await prisma.file.create({
+      data: {
+        userId: session.user.id,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        storageKey: key,
+        publicUrl: url,
+      },
+    });
 
     logger.info("File uploaded", {
       userId: session.user.id,
       fileName: file.name,
       fileType: file.type,
       fileSize: file.size,
+      key,
     });
 
     return NextResponse.json({
@@ -58,7 +74,7 @@ export async function POST(req: Request) {
       fileName: file.name,
       fileType: file.type,
       fileSize: file.size,
-      data: base64,
+      url,
     });
   } catch (error) {
     logger.error("File upload error", { error: String(error) });
