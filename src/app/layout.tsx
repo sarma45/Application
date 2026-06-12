@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getSession } from "@/lib/auth";
 import "./globals.css";
 
-const geist = Geist({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "AIVerse - AI Agent Marketplace",
@@ -17,7 +17,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className="dark">
-      <body className={`${geist.className} min-h-screen bg-zinc-950 antialiased`}>
+      <body className={`${inter.className} min-h-screen bg-zinc-950 antialiased`}>
         <Navbar session={session} />
         <main className="min-h-[calc(100vh-4rem)]">{children}</main>
         <Footer />

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from '../auth/[...nextauth]/route';
+import { getServerSession } from 'next-auth';
 import { complete } from '@/lib/ai/gateway';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const session = await auth();
+  const session = await getServerSession();
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

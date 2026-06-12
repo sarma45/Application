@@ -26,7 +26,7 @@ function getModelConfig(category: AgentCategory): ModelConfig {
   const env = getEnv();
 
   const categoryConfig: Record<AgentCategory, { primary: string; fallback?: string }> = {
-    CHAT: { primary: env.openRouterModel, fallback: env.geminiModel },
+    CHAT: { primary: env.openrouterModel, fallback: env.geminiModel },
     CODE: { primary: env.openrouterModel, fallback: env.geminiModel },
     DATA: { primary: env.geminiModel, fallback: env.openrouterModel },
     WORKFLOW: { primary: env.geminiModel, fallback: env.openrouterModel },
