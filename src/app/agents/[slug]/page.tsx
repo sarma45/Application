@@ -6,22 +6,49 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentRunner } from "@/components/agent/agent-runner";
+import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
 interface AgentDetailPageProps {
   params: Promise<{ slug: string }>;
+}
+
+interface AgentDetail {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  status: string;
+  pricingType: string;
+  creditsPerRun: number;
+  systemPrompt: string | null;
+  totalRuns: number;
+  creatorId: string;
+  creator: { username: string | null; id: string };
+  reviews: Array<{
+    id: string;
+    rating: number;
+    title: string | null;
+    body: string | null;
+    user: { username: string | null };
+  }>;
 }
 
 export default async function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { slug } = await params;
   const session = await requireAuth();
 
-  const agent = await prisma.agent.findUnique({
-    where: { slug },
-    include: {
-      creator: { select: { username: true, id: true } },
-      reviews: { include: { user: { select: { username: true } } }, take: 5, orderBy: { createdAt: "desc" } },
-    },
-  });
+  const cacheKey = `agent:${slug}`;
+  let agent = await cacheGet<AgentDetail>(cacheKey);
+  if (!agent) {
+    agent = await prisma.agent.findUnique({
+      where: { slug },
+      include: {
+        creator: { select: { username: true, id: true } },
+        reviews: { include: { user: { select: { username: true } } }, take: 5, orderBy: { createdAt: "desc" } },
+      },
+    }) as unknown as AgentDetail | null;
+    if (agent) await cacheSet(cacheKey, agent, CACHE_TTL.AGENT_DETAIL);
+  }
 
   if (!agent) notFound();
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from "@/lib/redis";
+import { walletCreditSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 
@@ -13,11 +15,12 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { amount, description } = body;
-
-    if (!amount || amount <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    const parsed = walletCreditSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+
+    const { amount, description } = parsed.data;
 
     const wallet = await prisma.wallet.upsert({
       where: { userId: session.user.id },
@@ -45,6 +48,8 @@ export async function POST(req: Request) {
       return w;
     });
 
+    await cacheDel(`wallet:${session.user.id}`);
+
     return NextResponse.json({ ok: true, balance: updated.balance });
   } catch (error) {
     console.error("wallet error", error);
@@ -58,10 +63,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const wallet = await prisma.wallet.findUnique({
-    where: { userId: session.user.id },
-    include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } },
-  });
+  const cacheKey = `wallet:${session.user.id}`;
+  let wallet = await cacheGet<any>(cacheKey);
+  if (!wallet) {
+    wallet = await prisma.wallet.findUnique({
+      where: { userId: session.user.id },
+      include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } },
+    });
+    await cacheSet(cacheKey, wallet, CACHE_TTL.WALLET);
+  }
 
   return NextResponse.json({ wallet });
 }

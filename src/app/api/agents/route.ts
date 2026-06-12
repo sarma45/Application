@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from "@/lib/redis";
+import { createAgentSchema, listAgentsSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 
@@ -36,13 +38,13 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, category, systemPrompt, pricingType, creditsPerRun } = body;
-
-    if (!name || !category) {
-      return NextResponse.json({ error: "Name and category are required" }, { status: 400 });
+    const parsed = createAgentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    let slug = body.slug || slugify(name);
+    const { name, category, systemPrompt, pricingType, creditsPerRun, slug: customSlug } = parsed.data;
+    let slug = customSlug || slugify(name);
 
     const existing = await prisma.agent.findUnique({ where: { slug } });
     if (existing) {
@@ -63,6 +65,17 @@ export async function POST(req: Request) {
       },
     });
 
+    await prisma.agentVersion.create({
+      data: {
+        agentId: agent.id,
+        version: "1.0.0",
+        changelog: "Initial version",
+        config: JSON.stringify({ name, category, systemPrompt, pricingType, creditsPerRun }),
+      },
+    });
+
+    await cacheDel("home:featured");
+
     return NextResponse.json({ ok: true, slug: agent.slug, id: agent.id }, { status: 201 });
   } catch (error) {
     console.error("create agent error", error);
@@ -72,34 +85,41 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category");
-  const query = searchParams.get("q");
+  const params = listAgentsSchema.parse({
+    category: searchParams.get("category"),
+    q: searchParams.get("q"),
+  });
 
   const where: Record<string, unknown> = { status: "PUBLISHED" };
-  if (category && category !== "ALL") where.category = category;
-  if (query) {
+  if (params.category && params.category !== "ALL") where.category = params.category;
+  if (params.q) {
     where.OR = [
-      { name: { contains: query, mode: "insensitive" } },
-      { systemPrompt: { contains: query, mode: "insensitive" } },
+      { name: { contains: params.q, mode: "insensitive" } },
+      { systemPrompt: { contains: params.q, mode: "insensitive" } },
     ];
   }
 
-  const agents = await prisma.agent.findMany({
-    where: where as any,
-    orderBy: { totalRuns: "desc" },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      category: true,
-      pricingType: true,
-      creditsPerRun: true,
-      totalRuns: true,
-      avgRating: true,
-      creator: { select: { username: true } },
-    },
-    take: 50,
-  });
+  const cacheKey = `agents:api:${params.category || ""}:${params.q || ""}`;
+  let agents = await cacheGet<any[]>(cacheKey);
+  if (!agents) {
+    agents = await prisma.agent.findMany({
+      where: where as any,
+      orderBy: { totalRuns: "desc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        category: true,
+        pricingType: true,
+        creditsPerRun: true,
+        totalRuns: true,
+        avgRating: true,
+        creator: { select: { username: true } },
+      },
+      take: 50,
+    });
+    await cacheSet(cacheKey, agents, CACHE_TTL.SEARCH);
+  }
 
   return NextResponse.json({ agents });
 }

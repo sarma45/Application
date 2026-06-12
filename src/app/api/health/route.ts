@@ -1,14 +1,34 @@
 import { NextResponse } from "next/server";
-import { assertEnv } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET() {
+  const checks: Record<string, string> = {};
+
   try {
-    assertEnv();
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Env not ready";
-    return NextResponse.json({ ok: false, error: message }, { status: 503 });
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = "ok";
+  } catch {
+    checks.database = "error";
   }
-  return NextResponse.json({ ok: true, ts: Date.now() });
+
+  try {
+    if (redis && redis.status === "ready") {
+      await redis.ping();
+      checks.redis = "ok";
+    } else {
+      checks.redis = "unavailable";
+    }
+  } catch {
+    checks.redis = "error";
+  }
+
+  const allOk = Object.values(checks).every((s) => s === "ok" || s === "unavailable");
+
+  return NextResponse.json(
+    { ok: allOk, ts: Date.now(), checks },
+    { status: allOk ? 200 : 503 }
+  );
 }

@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 import { getRoutesForCategory } from "@/lib/ai/gateway";
 import type { AgentCategory } from "@/lib/ai/gateway";
+import { cacheDel } from "@/lib/redis";
+import { executeSchema } from "@/lib/validations";
+import { checkSafety, sanitizeInput } from "@/lib/ai/safety";
 
 export const runtime = "nodejs";
 
@@ -20,11 +23,19 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const { message, systemPrompt, category } = body;
-
-    if (!message) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    const parsed = executeSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+
+    const { message, systemPrompt, category } = parsed.data;
+
+    const safety = checkSafety(message);
+    if (!safety.safe) {
+      return NextResponse.json({ error: safety.reason }, { status: 400 });
+    }
+
+    const safeMessage = sanitizeInput(message);
 
     const agent = await prisma.agent.findUnique({ where: { slug } });
     if (!agent) {
@@ -64,7 +75,7 @@ export async function POST(
                 contents: [
                   {
                     role: "user",
-                    parts: [{ text: [systemPromptToUse, message].filter(Boolean).join("\n\n") }],
+                    parts: [{ text: [systemPromptToUse, safeMessage].filter(Boolean).join("\n\n") }],
                   },
                 ],
                 generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
@@ -128,7 +139,7 @@ export async function POST(
                   model: route.model,
                   messages: [
                     { role: "system", content: systemPromptToUse },
-                    { role: "user", content: message },
+                    { role: "user", content: safeMessage },
                   ],
                   stream: true,
                   max_tokens: 2048,
@@ -209,6 +220,19 @@ export async function POST(
           where: { id: agent.id },
           data: { totalRuns: { increment: 1 } },
         });
+
+        await prisma.agentExecution.create({
+          data: {
+            agentId: agent.id,
+            userId: session.user.id,
+            creditsUsed: cost,
+            status: "COMPLETED",
+            modelUsed: usedModel || undefined,
+          },
+        });
+
+        await cacheDel(`agent:${slug}`);
+        if (cost > 0) await cacheDel(`wallet:${session.user.id}`);
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();

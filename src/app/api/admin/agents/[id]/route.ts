@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { adminActionSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 
@@ -23,11 +24,12 @@ export async function POST(
 
   try {
     const formData = await req.formData();
-    const action = formData.get("action") as string;
-
-    if (action !== "approve" && action !== "reject") {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    const parsed = adminActionSchema.safeParse({ action: formData.get("action") });
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+
+    const { action } = parsed.data;
 
     const status = action === "approve" ? "PUBLISHED" : "REJECTED";
 

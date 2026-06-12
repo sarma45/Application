@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
 const categories = ["ALL", "CHAT", "CODE", "DATA", "WORKFLOW"];
 
@@ -22,11 +23,16 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
     { systemPrompt: { contains: query, mode: "insensitive" } },
   ];
 
-  const agents = await prisma.agent.findMany({
-    where: where as any,
-    orderBy: { totalRuns: "desc" },
-    include: { creator: { select: { username: true } } },
-  });
+  const cacheKey = `agents:list:${category}:${query}`;
+  let agents = await cacheGet<any[]>(cacheKey);
+  if (!agents) {
+    agents = await prisma.agent.findMany({
+      where: where as any,
+      orderBy: { totalRuns: "desc" },
+      include: { creator: { select: { username: true } } },
+    });
+    await cacheSet(cacheKey, agents, CACHE_TTL.SEARCH);
+  }
 
   return (
     <div className="container-main py-8">

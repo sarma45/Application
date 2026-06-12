@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
+import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
 const categories = [
   { slug: "CHAT", label: "Chat Agents", desc: "Conversational AI for any task", icon: "💬" },
@@ -12,12 +13,17 @@ const categories = [
 ];
 
 export default async function HomePage() {
-  const featuredAgents = await prisma.agent.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: { totalRuns: "desc" },
-    take: 6,
-    include: { creator: { select: { username: true } } },
-  });
+  const cacheKey = "home:featured";
+  let featuredAgents = await cacheGet<any[]>(cacheKey);
+  if (!featuredAgents) {
+    featuredAgents = await prisma.agent.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: { totalRuns: "desc" },
+      take: 6,
+      include: { creator: { select: { username: true } } },
+    });
+    await cacheSet(cacheKey, featuredAgents, CACHE_TTL.FEATURED_AGENTS);
+  }
 
   return (
     <div>

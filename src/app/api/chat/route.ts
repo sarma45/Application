@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { complete } from '@/lib/ai/gateway';
+import { chatSchema } from '@/lib/validations';
 
 export const runtime = 'nodejs';
 
@@ -13,14 +14,14 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const text = typeof body.message === 'string' ? body.message.trim() : '';
-    if (!text) {
-      return NextResponse.json({ error: 'Missing message' }, { status: 400 });
+    const parsed = chatSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
     const result = await complete({
       category: 'CHAT',
-      prompt: text,
+      prompt: parsed.data.message,
       systemPrompt: 'You are AIVerse, an AI assistant.'
     });
 

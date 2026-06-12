@@ -84,6 +84,7 @@ model Agent {
 
   @@index([status, category])
   @@index([slug])
+  @@index([name, systemPrompt], type: Gin)
 }
 
 model AgentVersion {

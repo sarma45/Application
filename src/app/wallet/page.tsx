@@ -10,6 +10,7 @@ const creditPackages = [
   { credits: 500, price: 7.99 },
   { credits: 1500, price: 19.99 },
   { credits: 5000, price: 49.99 },
+  { credits: 20000, price: 149.99 },
 ];
 
 export default async function WalletPage() {
