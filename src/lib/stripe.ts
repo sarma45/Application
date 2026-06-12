@@ -1,8 +1,14 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET ?? "", {
-  typescript: true,
-});
+function createStripe(): Stripe {
+  const key = process.env.STRIPE_SECRET;
+  if (!key) {
+    return null as unknown as Stripe;
+  }
+  return new Stripe(key, { typescript: true });
+}
+
+export const stripe = createStripe();
 
 export const CREDIT_PACKAGES: Record<number, number> = {
   100: 1.99,
