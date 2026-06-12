@@ -48,18 +48,23 @@ export async function searchByEmbedding(
   agents: { id: string; name: string; description?: string | null; systemPrompt?: string | null }[],
   topK = 10
 ): Promise<string[]> {
-  const queryEmbedding = await generateEmbedding(query);
-  if (queryEmbedding.length === 0) return agents.slice(0, topK).map((a) => a.id);
+  const queryLower = query.toLowerCase();
+  const queryTerms = queryLower.split(/\s+/).filter(Boolean);
+
+  if (queryTerms.length === 0) return agents.slice(0, topK).map((a) => a.id);
 
   const scored = agents
     .map((agent) => {
       const text = [agent.name, agent.description, agent.systemPrompt]
         .filter(Boolean)
-        .join(" ");
-      return {
-        id: agent.id,
-        score: cosineSimilarity(queryEmbedding, Array(queryEmbedding.length).fill(0)),
-      };
+        .join(" ")
+        .toLowerCase();
+
+      let score = 0;
+      for (const term of queryTerms) {
+        if (text.includes(term)) score += term.length;
+      }
+      return { id: agent.id, score };
     })
     .sort((a, b) => b.score - a.score);
 
