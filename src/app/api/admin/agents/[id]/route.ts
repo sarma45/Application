@@ -31,7 +31,7 @@ export async function POST(
 
     const { action } = parsed.data;
 
-    const status = action === "approve" ? "PUBLISHED" : "REJECTED";
+    const status = action === "approve" ? "APPROVED" : "REJECTED";
 
     await prisma.agent.update({
       where: { id },

@@ -1,0 +1,106 @@
+import { NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
+import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  const sig = req.headers.get("stripe-signature");
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !webhookSecret) {
+    return NextResponse.json({ error: "Missing signature or secret" }, { status: 400 });
+  }
+
+  const body = await req.text();
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+  } catch {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const checkoutSession = event.data.object as any;
+      const userId = checkoutSession.metadata?.userId;
+      const plan = checkoutSession.metadata?.plan;
+      const subscriptionId = checkoutSession.subscription;
+
+      if (userId && plan) {
+        const currentPeriodEnd = new Date();
+        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+
+        await prisma.subscription.upsert({
+          where: { userId },
+          update: {
+            plan,
+            status: "active",
+            providerSubId: subscriptionId,
+            currentPeriodEnd,
+            stripeSessionId: checkoutSession.id,
+          },
+          create: {
+            userId,
+            plan,
+            status: "active",
+            provider: "stripe",
+            providerSubId: subscriptionId,
+            currentPeriodEnd,
+            stripeSessionId: checkoutSession.id,
+          },
+        });
+
+        await prisma.user.update({
+          where: { id: userId },
+          data: { plan },
+        });
+
+        logger.info("Subscription activated via webhook", { userId, plan });
+      }
+    }
+
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as any;
+      const subRecord = await prisma.subscription.findFirst({
+        where: { providerSubId: subscription.id },
+      });
+
+      if (subRecord) {
+        await prisma.subscription.update({
+          where: { id: subRecord.id },
+          data: {
+            status: subscription.status === "active" ? "active" : "past_due",
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          },
+        });
+      }
+    }
+
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data.object as any;
+      const subRecord = await prisma.subscription.findFirst({
+        where: { providerSubId: subscription.id },
+      });
+
+      if (subRecord) {
+        await prisma.subscription.update({
+          where: { id: subRecord.id },
+          data: { status: "canceled" },
+        });
+
+        await prisma.user.update({
+          where: { id: subRecord.userId },
+          data: { plan: "FREE" },
+        });
+      }
+    }
+  } catch (error) {
+    logger.error("Subscription webhook error", { error: String(error) });
+  }
+
+  return NextResponse.json({ received: true });
+}

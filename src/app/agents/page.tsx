@@ -16,7 +16,7 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
   const category = params.category || "ALL";
   const query = params.q || "";
 
-  const where: Record<string, unknown> = { status: "PUBLISHED" };
+  const where: Record<string, unknown> = { status: "APPROVED" };
   if (category !== "ALL") where.category = category;
   if (query) where.OR = [
     { name: { contains: query, mode: "insensitive" } },

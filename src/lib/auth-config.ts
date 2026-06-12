@@ -1,5 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
@@ -24,6 +26,10 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        if (!user.isActive) {
+          throw new Error("Please verify your email before signing in");
+        }
+
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {
           return null;
@@ -38,18 +44,85 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+      ? [
+          GitHubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account }) {
+      if (account?.provider === "credentials") {
+        return true;
+      }
+      if (account?.provider === "google" || account?.provider === "github") {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        });
+        if (!existingUser) {
+          await prisma.user.create({
+            data: {
+              email: user.email!,
+              username: user.name?.toLowerCase().replace(/\s+/g, "_") || user.email!.split("@")[0],
+              role: "USER",
+              plan: "FREE",
+              isActive: true,
+              emailVerified: new Date(),
+            },
+          });
+          await prisma.wallet.upsert({
+            where: { userId: user.id },
+            update: {},
+            create: { userId: user.id, balance: 100, lifetimeEarned: 100, lifetimeSpent: 0 },
+          });
+        } else if (!existingUser.isActive) {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { isActive: true, emailVerified: new Date() },
+          });
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
       if (user) {
-        token = {
-          ...token,
-          id: user.id,
-          email: user.email,
-          username: (user as any).username ?? null,
-          role: (user as any).role ?? "USER",
-          plan: (user as any).plan ?? "FREE",
-        };
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email as string || user.email! },
+          select: { id: true, email: true, username: true, role: true, plan: true },
+        });
+        if (dbUser) {
+          token = {
+            ...token,
+            id: dbUser.id,
+            email: dbUser.email,
+            username: dbUser.username ?? null,
+            role: dbUser.role ?? "USER",
+            plan: dbUser.plan ?? "FREE",
+          };
+        } else {
+          token = {
+            ...token,
+            id: user.id,
+            email: user.email,
+            username: (user as any).username ?? null,
+            role: (user as any).role ?? "USER",
+            plan: (user as any).plan ?? "FREE",
+          };
+        }
+      }
+      if (account) {
+        token.provider = account.provider;
       }
       return token;
     },

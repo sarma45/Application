@@ -17,7 +17,7 @@ export default async function HomePage() {
   let featuredAgents = await cacheGet<any[]>(cacheKey);
   if (!featuredAgents) {
     featuredAgents = await prisma.agent.findMany({
-      where: { status: "PUBLISHED" },
+      where: { status: "APPROVED" },
       orderBy: { totalRuns: "desc" },
       take: 6,
       include: { creator: { select: { username: true } } },

@@ -89,7 +89,7 @@ export default async function DashboardPage() {
                       <p className="text-sm font-medium text-zinc-200">{agent.name}</p>
                       <p className="text-xs text-zinc-500">{agent.totalRuns} runs</p>
                     </div>
-                    <Badge variant={agent.status === "PUBLISHED" ? "success" : agent.status === "DRAFT" ? "warning" : "default"}>
+                    <Badge variant={agent.status === "APPROVED" ? "success" : agent.status === "DRAFT" ? "warning" : agent.status === "PENDING" ? "warning" : "default"}>
                       {agent.status}
                     </Badge>
                   </Card>

@@ -15,7 +15,8 @@ model User {
   role          String    @default("USER")
   plan          String    @default("FREE")
   planExpiresAt DateTime?
-  isActive      Boolean   @default(true)
+  isActive      Boolean   @default(false)
+  emailVerified DateTime?
   createdAt     DateTime  @default(now())
 
   creatorProfile  CreatorProfile?
@@ -29,6 +30,68 @@ model User {
   payments        Payment[]
   referralsMade   Referral[]        @relation("Referrer")
   referralsRedeemed Referral[]      @relation("Referee")
+  accounts        Account[]
+  sessions        Session[]
+  passwordResets  PasswordReset[]
+  emailVerifications EmailVerification[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
 }
 
 model Referral {
@@ -64,15 +127,20 @@ model Agent {
   creatorId     String
   name          String
   slug          String   @unique
+  description   String?  @db.Text
   category      String
   status        String   @default("DRAFT")
   pricingType   String   @default("FREE")
   creditsPerRun Int      @default(0)
-  modelProvider String
-  systemPrompt  String?
-  toolsConfig   String?
+  modelProvider String   @default("openrouter")
+  modelId       String?
+  systemPrompt  String?  @db.Text
+  toolsConfig   String?  @db.Text
+  tags          String[]
+  isFeatured    Boolean  @default(false)
   totalRuns     Int      @default(0)
   avgRating     Float?
+  viewCount     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -84,7 +152,8 @@ model Agent {
 
   @@index([status, category])
   @@index([slug])
-  @@index([name, systemPrompt], type: Gin)
+  @@index([tags])
+  @@index([name, description], type: Gin)
 }
 
 model AgentVersion {
@@ -122,11 +191,14 @@ model AgentExecution {
   agentId     String
   userId      String
   sessionId   String?
-  tokens      Int?
-  creditsUsed Int      @default(0)
+  inputTokens Int?
+  outputTokens Int?
+  creditsUsed Float    @default(0)
   durationMs  Int?
   status      String   @default("PENDING")
   modelUsed   String?
+  provider    String?
+  errorLog    String?  @db.Text
   createdAt   DateTime @default(now())
 
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -134,14 +206,30 @@ model AgentExecution {
 
   @@index([agentId, createdAt])
   @@index([userId, createdAt])
+  @@index([status])
+}
+
+model AgentFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  agentId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, agentId])
+  @@index([userId])
+  @@index([agentId])
 }
 
 model Wallet {
   id             String   @id @default(cuid())
   userId         String   @unique
-  balance        Int      @default(0)
-  lifetimeEarned Int      @default(0)
-  lifetimeSpent  Int      @default(0)
+  balance        Float    @default(0)
+  lifetimeEarned Float    @default(0)
+  lifetimeSpent  Float    @default(0)
+  updatedAt      DateTime @updatedAt
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
@@ -153,8 +241,9 @@ model Transaction {
   id            String   @id @default(cuid())
   userId        String
   type          String
-  amount        Int
-  balanceAfter  Int
+  amount        Float
+  balanceAfter  Float
+  description   String?
   referenceType String?
   referenceId   String?
   createdAt     DateTime @default(now())
@@ -162,18 +251,27 @@ model Transaction {
   wallet Wallet @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([referenceType, referenceId])
 }
 
 model Subscription {
-  id               String   @id @default(cuid())
-  userId           String
-  plan             String
-  providerSubId    String?
-  status           String    @default("active")
-  currentPeriodEnd DateTime?
-  createdAt        DateTime  @default(now())
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  plan              String
+  status            String   @default("active")
+  provider          String   @default("stripe")
+  providerSubId     String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean  @default(false)
+  stripeSessionId   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Payment {
@@ -193,12 +291,18 @@ model CreatorPayout {
   id              String   @id @default(cuid())
   creatorId       String
   amountUsd       Decimal  @db.Decimal(10, 2)
-  creditsRedeemed Int?
-  status          String
+  creditsRedeemed Float?
+  status          String   @default("PENDING")
   payoutMethod    String?
+  payoutReference String?
+  processedAt     DateTime?
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, createdAt])
+  @@index([status])
 }
 
 model AuditLog {

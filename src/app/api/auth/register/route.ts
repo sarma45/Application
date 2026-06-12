@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
@@ -23,13 +25,45 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { email, username, password: hashedPassword, role: "USER", plan: "FREE" },
+      data: { email, username, password: hashedPassword, role: "USER", plan: "FREE", isActive: false },
       select: { id: true, email: true, username: true, role: true, plan: true, createdAt: true },
     });
 
-    return NextResponse.json({ ok: true, user }, { status: 201 });
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    await prisma.emailVerification.create({
+      data: {
+        userId: user.id,
+        token: verificationToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: "noreply@aiverse.ai",
+          to: email,
+          subject: "Verify your AIVerse account",
+          html: `<p>Welcome to AIVerse! Click <a href="${verifyUrl}">here</a> to verify your email.<br/><br/>You'll receive 100 free credits once verified.</p>`,
+        });
+      } catch (emailError) {
+        logger.warn("Failed to send verification email", { error: String(emailError) });
+      }
+    }
+
+    logger.info("User registered", { userId: user.id, email });
+
+    return NextResponse.json({
+      ok: true,
+      user,
+      message: "Account created. Please check your email to verify your account.",
+    }, { status: 201 });
   } catch (error) {
-    console.error("Register error", error);
+    logger.error("Register error", { error: String(error) });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

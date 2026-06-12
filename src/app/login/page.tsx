@@ -56,13 +56,20 @@ export default function LoginPage() {
             <Button type="submit" loading={loading} className="w-full">
               Sign in
             </Button>
+            <div className="text-right">
+              <Link href="/forgot-password" className="text-xs text-zinc-500 hover:text-purple-400 transition-colors">
+                Forgot password?
+              </Link>
+            </div>
           </form>
-          <p className="mt-4 text-center text-sm text-zinc-500">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-purple-400 hover:text-purple-300 transition-colors">
-              Sign up
-            </Link>
-          </p>
+          <div className="mt-4 space-y-2">
+            <p className="text-center text-sm text-zinc-500">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-purple-400 hover:text-purple-300 transition-colors">
+                Sign up
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
