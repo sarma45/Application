@@ -147,7 +147,7 @@ export async function GET(req: Request) {
     if (params.q) {
       where.OR = [
         { name: { contains: params.q, mode: "insensitive" } },
-        { systemPrompt: { contains: params.q, mode: "insensitive" } },
+        { description: { contains: params.q, mode: "insensitive" } },
       ];
     }
   }
@@ -167,9 +167,10 @@ export async function GET(req: Request) {
       creditsPerRun: true,
       totalRuns: true,
       avgRating: true,
+      isFeatured: true,
       status: true,
       createdAt: true,
-      creator: { select: { username: true } },
+      creator: { select: { username: true, email: true } },
     },
   });
 
