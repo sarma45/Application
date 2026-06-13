@@ -13,7 +13,6 @@ const csp = [
 ].join("; ");
 
 const nextConfig = {
-  output: "standalone",
   images: { unoptimized: false },
   poweredByHeader: false,
   reactStrictMode: true,
