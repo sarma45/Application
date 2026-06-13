@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -63,14 +63,14 @@ export default function RegisterPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-purple-600">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-stream-500 neural-glow">
               <span className="text-lg font-bold text-white">A</span>
             </div>
-            <h1 className="text-xl font-semibold text-zinc-100">Create account</h1>
+            <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Create account</h1>
             <p className="mt-1 text-sm text-zinc-500">Join the AI agent marketplace</p>
           </div>
         </CardHeader>
-        <CardContent>
+        <div className="p-6 pt-0">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input id="username" name="username" label="Username" type="text" placeholder="your-username" />
             <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" required />
@@ -86,7 +86,7 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </p>
-        </CardContent>
+        </div>
       </Card>
     </div>
   );

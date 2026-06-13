@@ -21,7 +21,7 @@ export default async function AdminPage() {
     <div className="container-main py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
+          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Admin Panel</h1>
           <p className="text-sm text-zinc-500">Moderation & system management</p>
         </div>
         <Badge variant="purple">{session.user.role}</Badge>
@@ -32,16 +32,18 @@ export default async function AdminPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-zinc-100">Pending Agents ({pendingAgents.length})</h2>
+                <h2 className="text-lg font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">
+                  Pending Agents ({pendingAgents.length})
+                </h2>
               </div>
               {pendingAgents.length === 0 ? (
                 <p className="text-sm text-zinc-500">No pending agents</p>
               ) : (
                 <div className="space-y-2">
                   {pendingAgents.map((agent) => (
-                    <div key={agent.id} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50">
+                    <div key={agent.id} className="flex items-center justify-between p-3 rounded-lg glass">
                       <div>
-                        <Link href={`/agents/${agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-purple-400">
+                        <Link href={`/agents/${agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-stream-400 transition-colors">
                           {agent.name}
                         </Link>
                         <p className="text-xs text-zinc-500">by {agent.creator.email} &middot; {agent.category}</p>
@@ -56,62 +58,50 @@ export default async function AdminPage() {
 
           <Card>
             <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-zinc-100">Featured Agents ({featuredAgents.length})</h2>
-              </div>
-              {featuredAgents.length === 0 ? (
-                <p className="text-sm text-zinc-500">No featured agents. Approve agents and feature them from the marketplace.</p>
+              <h2 className="text-lg font-semibold text-zinc-100 mb-4 font-[family-name:var(--font-neural)]">
+                Recent Audit Logs
+              </h2>
+              {recentAuditLogs.length === 0 ? (
+                <p className="text-sm text-zinc-500">No audit logs</p>
               ) : (
                 <div className="space-y-2">
-                  {featuredAgents.map((agent) => (
-                    <div key={agent.id} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50">
-                      <div>
-                        <Link href={`/agents/${agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-purple-400">
-                          {agent.name}
-                        </Link>
-                        <p className="text-xs text-zinc-500">by {agent.creator.email} &middot; {agent.totalRuns} runs</p>
+                  {recentAuditLogs.map((log) => (
+                    <div key={log.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 neural-pulse" />
+                        <div>
+                          <p className="text-sm text-zinc-300">{log.action}</p>
+                          <p className="text-xs text-zinc-600">
+                            {log.actor.email} &middot; {formatDate(log.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                      <FeaturedToggle agentId={agent.id} isFeatured={agent.isFeatured} />
                     </div>
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardContent className="p-5">
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Recent Users</h2>
-              <div className="space-y-2">
-                {allUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0">
-                    <div>
-                      <p className="text-sm text-zinc-300">{user.email}</p>
-                      <p className="text-xs text-zinc-600">Joined {formatDate(user.createdAt)}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={user.role === "ADMIN" ? "purple" : user.role === "CREATOR" ? "success" : "default"}>
-                        {user.role}
-                      </Badge>
-                      <Badge>{user.plan}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Card>
             <CardContent className="p-5">
-              <h2 className="text-sm font-semibold text-zinc-200 mb-3">Audit Log</h2>
-              <div className="space-y-2">
-                {recentAuditLogs.map((log) => (
-                  <div key={log.id} className="text-xs text-zinc-500 border-b border-zinc-800 pb-2 last:border-0">
-                    <span className="text-zinc-400">{log.actor.email}</span>
-                    <span className="text-zinc-600"> &middot; {log.action}</span>
-                    <p className="text-zinc-600">{formatDate(log.createdAt)}</p>
+              <h2 className="text-lg font-semibold text-zinc-100 mb-4 font-[family-name:var(--font-neural)]">
+                Users ({allUsers.length})
+              </h2>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {allUsers.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between py-1.5">
+                    <div className="min-w-0">
+                      <p className="text-sm text-zinc-300 truncate">{user.email}</p>
+                      <p className="text-xs text-zinc-600">
+                        {user.role} &middot; {user.plan}
+                      </p>
+                    </div>
+                    <Badge variant={user.isActive ? "success" : "danger"}>
+                      {user.isActive ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -119,16 +109,27 @@ export default async function AdminPage() {
           </Card>
 
           <Card>
-            <CardContent className="p-5 space-y-2">
-              <h2 className="text-sm font-semibold text-zinc-200">Quick Stats</h2>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Total Users</span>
-                <span className="text-zinc-300">{allUsers.length}+</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Pending</span>
-                <span className="text-zinc-300">{pendingAgents.length}</span>
-              </div>
+            <CardContent className="p-5">
+              <h2 className="text-lg font-semibold text-zinc-100 mb-4 font-[family-name:var(--font-neural)]">
+                Featured Agents
+              </h2>
+              {featuredAgents.length === 0 ? (
+                <p className="text-sm text-zinc-500">No featured agents</p>
+              ) : (
+                <div className="space-y-2">
+                  {featuredAgents.map((agent) => (
+                    <div key={agent.id} className="flex items-center justify-between py-1.5">
+                      <div className="min-w-0">
+                        <Link href={`/agents/${agent.slug}`} className="text-sm text-zinc-300 hover:text-stream-400 truncate block transition-colors">
+                          {agent.name}
+                        </Link>
+                        <p className="text-xs text-zinc-600">by {agent.creator.email}</p>
+                      </div>
+                      <FeaturedToggle agentId={agent.id} isFeatured />
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

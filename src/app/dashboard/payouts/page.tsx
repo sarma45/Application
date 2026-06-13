@@ -35,7 +35,7 @@ export default function PayoutsPage() {
   return (
     <div className="container-main py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Payouts</h1>
+        <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Payouts</h1>
         <p className="text-sm text-zinc-500">Manage your earnings and request payouts</p>
       </div>
 
@@ -43,82 +43,36 @@ export default function PayoutsPage() {
         <Card>
           <CardContent className="p-5">
             <p className="text-sm text-zinc-500">Available Balance</p>
-            <p className="text-3xl font-bold text-emerald-400 mt-1">${(balance * 0.001).toFixed(2)}</p>
+            <p className="text-3xl font-bold text-emerald-400 mt-1 font-[family-name:var(--font-neural)]">${(balance * 0.001).toFixed(2)}</p>
             <p className="text-xs text-zinc-600 mt-1">{formatCredits(balance)} credits (1000 credits = $1)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Total Payouts</p>
-            <p className="text-3xl font-bold text-white mt-1">{payouts.length}</p>
+            <p className="text-sm text-zinc-500">Request Payout</p>
+            <p className="text-xs text-zinc-500 mt-1 mb-3">Minimum payout: $10.00 (10,000 credits)</p>
+            <Button size="sm" disabled={balance < 10000}>Request Payout</Button>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="mb-8">
-        <CardContent className="p-5">
-          <h2 className="text-lg font-semibold text-zinc-100 mb-4">Request Payout</h2>
-          <p className="text-sm text-zinc-500 mb-4">
-            Minimum payout: $10 equivalent (10,000 credits). Payouts processed on the 1st of each month.
-          </p>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            const form = e.target as HTMLFormElement;
-            const amountUsd = parseFloat(new FormData(form).get("amountUsd") as string);
-            if (!amountUsd || amountUsd < 10) return alert("Minimum payout is $10");
-            try {
-              const res = await fetch("/api/payouts/request", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amountUsd }),
-              });
-              if (!res.ok) {
-                const data = await res.json();
-                alert(data.error || "Request failed");
-              } else {
-                window.location.reload();
-              }
-            } catch {
-              alert("Request failed");
-            }
-          }}>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-sm text-zinc-400">$</span>
-              <input
-                name="amountUsd"
-                type="number"
-                step="0.01"
-                min="10"
-                max={((balance * 0.001)).toFixed(2)}
-                defaultValue={Math.max(10, Math.floor(balance * 0.001 * 100) / 100)}
-                className="w-32 rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
-              />
-              <span className="text-xs text-zinc-500">
-                Balance: ${(balance * 0.001).toFixed(2)}
-              </span>
-            </div>
-            <Button type="submit" variant="primary">Request Payout</Button>
-          </form>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-zinc-100">Payout History</h2>
+          <h2 className="font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Payout History</h2>
         </CardHeader>
         <CardContent>
           {payouts.length === 0 ? (
             <p className="text-sm text-zinc-500">No payouts yet</p>
           ) : (
-            <div className="space-y-3">
-              {payouts.map((p) => (
-                <div key={p.id} className="flex items-center justify-between py-3 border-b border-zinc-800 last:border-0">
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {payouts.map((payout) => (
+                <div key={payout.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">${p.amountUsd}</p>
-                    <p className="text-xs text-zinc-600">{formatDate(p.createdAt)}</p>
+                    <p className="text-sm font-medium text-zinc-300">${payout.amountUsd}</p>
+                    <p className="text-xs text-zinc-600">{formatDate(payout.createdAt)}</p>
                   </div>
-                  <Badge variant={p.status === "COMPLETED" ? "success" : p.status === "PENDING" ? "warning" : "danger"}>
-                    {p.status}
+                  <Badge variant={payout.status === "COMPLETED" ? "success" : payout.status === "PENDING" ? "warning" : "default"}>
+                    {payout.status}
                   </Badge>
                 </div>
               ))}

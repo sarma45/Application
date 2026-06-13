@@ -63,12 +63,12 @@ function ResetPasswordForm() {
     return (
       <Card className="w-full max-w-sm text-center">
         <CardContent className="p-6">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-900/50">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full glass">
             <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-zinc-100 mb-2">Password reset!</h1>
+          <h1 className="text-xl font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Password reset!</h1>
           <p className="text-sm text-zinc-500 mb-4">Your password has been updated successfully.</p>
           <Link href="/login">
             <Button>Sign in with new password</Button>
@@ -82,7 +82,7 @@ function ResetPasswordForm() {
     <Card className="w-full max-w-sm">
       <CardHeader>
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-zinc-100">Set new password</h1>
+          <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Set new password</h1>
           <p className="mt-1 text-sm text-zinc-500">Must be at least 8 characters</p>
         </div>
       </CardHeader>

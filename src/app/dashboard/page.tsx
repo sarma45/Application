@@ -25,16 +25,15 @@ export default async function DashboardPage() {
     <div className="container-main py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Dashboard</h1>
           <p className="text-sm text-zinc-500">Welcome back, {session.user.email}</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="purple">{session.user.plan}</Badge>
           {wallet && (
-            <div className="flex items-center gap-1 text-sm text-zinc-300">
-              <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd" />
+            <div className="glass rounded-lg px-3 py-1.5 flex items-center gap-1.5 text-sm text-zinc-300">
+              <svg className="h-4 w-4 text-stream-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {formatCredits(wallet.balance)}
             </div>
@@ -43,30 +42,41 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Total Runs</p>
-            <p className="text-2xl font-bold text-white mt-1">{recentExecutions.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">My Agents</p>
-            <p className="text-2xl font-bold text-white mt-1">{agents.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Credits</p>
-            <p className="text-2xl font-bold text-white mt-1">{wallet ? formatCredits(wallet.balance) : "0"}</p>
-          </CardContent>
-        </Card>
+        {[
+          { label: "Total Runs", value: recentExecutions.length, icon: "run" },
+          { label: "My Agents", value: agents.length, icon: "agent" },
+          { label: "Credits", value: wallet ? formatCredits(wallet.balance) : "0", icon: "credit" },
+        ].map((stat) => (
+          <Card key={stat.label} className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-zinc-500">{stat.label}</p>
+              <div className="w-8 h-8 rounded-full glass flex items-center justify-center">
+                {stat.icon === "run" && (
+                  <svg className="w-4 h-4 text-stream-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                )}
+                {stat.icon === "agent" && (
+                  <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                )}
+                {stat.icon === "credit" && (
+                  <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-white font-mono">{stat.value}</p>
+          </Card>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">My Agents</h2>
+            <h2 className="text-lg font-semibold text-white font-[family-name:var(--font-neural)]">My Agents</h2>
             <Link href="/agents/create">
               <Button variant="secondary" size="sm">New Agent</Button>
             </Link>
@@ -84,7 +94,7 @@ export default async function DashboardPage() {
             <div className="space-y-2">
               {agents.map((agent) => (
                 <Link key={agent.id} href={`/agents/${agent.slug}`}>
-                  <Card className="p-4 hover:border-zinc-700 transition-colors flex items-center justify-between">
+                  <Card className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-zinc-200">{agent.name}</p>
                       <p className="text-xs text-zinc-500">{agent.totalRuns} runs</p>
@@ -100,7 +110,7 @@ export default async function DashboardPage() {
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
+          <h2 className="text-lg font-semibold text-white mb-4 font-[family-name:var(--font-neural)]">Recent Activity</h2>
           {recentExecutions.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
@@ -112,18 +122,28 @@ export default async function DashboardPage() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {recentExecutions.map((exec) => (
+              {recentExecutions.map((exec, idx) => (
                 <Card key={exec.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Link href={`/agents/${exec.agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-purple-400">
-                        {exec.agent.name}
-                      </Link>
-                      <p className="text-xs text-zinc-500">{formatDate(exec.createdAt)}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex flex-col items-center">
+                      <div className={`w-2 h-2 rounded-full ${
+                        exec.status === "COMPLETED" ? "bg-emerald-400" : "bg-red-400"
+                      } neural-pulse`} />
+                      {idx < recentExecutions.length - 1 && (
+                        <div className="w-px h-full min-h-[2rem] bg-gradient-to-b from-white/10 to-transparent" />
+                      )}
                     </div>
-                    <div className="text-right text-xs text-zinc-500">
-                      <p>{exec.creditsUsed} credits</p>
-                      <Badge variant={exec.status === "COMPLETED" ? "success" : "danger"}>{exec.status}</Badge>
+                    <div className="flex-1 flex items-center justify-between">
+                      <div>
+                        <Link href={`/agents/${exec.agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-stream-400 transition-colors">
+                          {exec.agent.name}
+                        </Link>
+                        <p className="text-xs text-zinc-500">{formatDate(exec.createdAt)}</p>
+                      </div>
+                      <div className="text-right text-xs text-zinc-500">
+                        <p>{exec.creditsUsed} credits</p>
+                        <Badge variant={exec.status === "COMPLETED" ? "success" : "danger"}>{exec.status}</Badge>
+                      </div>
                     </div>
                   </div>
                 </Card>

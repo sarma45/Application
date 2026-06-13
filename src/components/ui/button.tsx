@@ -1,5 +1,3 @@
-import { cn } from "@/lib/utils";
-
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "destructive";
   size?: "sm" | "md" | "lg";
@@ -15,19 +13,28 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
+  const base = "inline-flex items-center justify-center font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:pointer-events-none disabled:opacity-50 relative overflow-hidden";
+
+  const variants: Record<string, string> = {
+    primary:
+      "bg-gradient-to-r from-purple-600 to-stream-500 text-white hover:shadow-[0_0_20px_rgb(106_0_240_/_0.4)] active:scale-[0.97]",
+    secondary:
+      "glass glass-strong text-zinc-100 hover:bg-white/10 hover:border-stream-500/30",
+    ghost:
+      "text-zinc-400 hover:text-zinc-100 hover:bg-white/5",
+    destructive:
+      "bg-red-600 text-white hover:bg-red-500",
+  };
+
+  const sizes: Record<string, string> = {
+    sm: "h-8 px-3 text-xs rounded-md",
+    md: "h-10 px-4 text-sm rounded-lg",
+    lg: "h-12 px-6 text-base rounded-lg",
+  };
+
   return (
     <button
-      className={cn(
-        "inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:pointer-events-none disabled:opacity-50",
-        variant === "primary" && "bg-purple-600 text-white hover:bg-purple-500",
-        variant === "secondary" && "bg-zinc-800 text-zinc-100 hover:bg-zinc-700",
-        variant === "ghost" && "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800",
-        variant === "destructive" && "bg-red-600 text-white hover:bg-red-500",
-        size === "sm" && "h-8 px-3 text-xs rounded-md",
-        size === "md" && "h-10 px-4 text-sm rounded-lg",
-        size === "lg" && "h-12 px-6 text-base rounded-lg",
-        className,
-      )}
+      className={`${base} ${variants[variant]} ${sizes[size]} ${className ?? ""}`}
       disabled={disabled || loading}
       {...props}
     >
@@ -37,7 +44,7 @@ export function Button({
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
       )}
-      {children}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 }

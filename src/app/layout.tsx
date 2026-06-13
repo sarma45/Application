@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
+import { Space_Grotesk } from "next/font/google";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getSession } from "@/lib/auth";
+import { ThemeProvider } from "@/hooks/use-theme";
+import { NeuralBackground } from "@/components/effects/neural-background";
+import { NeuralParticles } from "@/components/effects/neural-particles";
+import { PageTransition } from "@/components/effects/page-transition";
 import "./globals.css";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-neural",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -38,11 +49,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await getSession();
 
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-zinc-950 antialiased">
-        <Navbar session={session} />
-        <main className="min-h-[calc(100vh-4rem)]">{children}</main>
-        <Footer />
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${spaceGrotesk.variable} min-h-screen bg-zinc-950 antialiased`}>
+        <ThemeProvider>
+          <NeuralBackground />
+          <NeuralParticles />
+          <div className="relative z-10">
+            <Navbar session={session} />
+            <main className="min-h-[calc(100vh-4rem)]">
+              <PageTransition>{children}</PageTransition>
+            </main>
+            <Footer />
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

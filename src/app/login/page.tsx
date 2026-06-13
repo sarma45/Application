@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 
 declare global {
   interface Window {
@@ -84,14 +84,14 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-purple-600">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-stream-500 neural-glow">
               <span className="text-lg font-bold text-white">A</span>
             </div>
-            <h1 className="text-xl font-semibold text-zinc-100">Welcome back</h1>
+            <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Welcome back</h1>
             <p className="mt-1 text-sm text-zinc-500">Sign in to your account</p>
           </div>
         </CardHeader>
-        <CardContent>
+        <div className="p-6 pt-0">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" required />
             <Input id="password" name="password" label="Password" type="password" placeholder="Enter your password" required />
@@ -114,7 +114,7 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </CardContent>
+        </div>
       </Card>
     </div>
   );

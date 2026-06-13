@@ -12,11 +12,11 @@ export default async function SettingsPage() {
 
   return (
     <div className="container-main py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-white mb-8">Settings</h1>
+      <h1 className="text-2xl font-bold text-white mb-8 font-[family-name:var(--font-neural)]">Settings</h1>
 
       <Card className="mb-6">
         <CardHeader>
-          <h2 className="font-semibold text-zinc-100">Profile</h2>
+          <h2 className="font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Profile</h2>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -48,7 +48,7 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-zinc-100">Danger Zone</h2>
+          <h2 className="font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Danger Zone</h2>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-zinc-500 mb-4">

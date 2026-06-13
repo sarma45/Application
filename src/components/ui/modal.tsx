@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { cn } from "@/lib/utils";
 
 interface ModalProps {
   open: boolean;
@@ -20,14 +19,12 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       onClose();
       return;
     }
-
     if (e.key === "Tab" && dialogRef.current) {
       const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-
       if (e.shiftKey) {
         if (document.activeElement === first) {
           e.preventDefault();
@@ -47,7 +44,6 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       previousActiveElement.current = document.activeElement;
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
-
       requestAnimationFrame(() => {
         const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -55,7 +51,6 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         firstFocusable?.focus();
       });
     }
-
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
@@ -73,7 +68,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       role="presentation"
     >
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/70 backdrop-blur-md"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -82,13 +77,10 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={cn(
-          "relative z-50 w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl",
-          className
-        )}
+        className={`relative z-50 w-full max-w-lg glass glass-strong glass-border-gradient ${className ?? ""}`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 id="modal-title" className="text-lg font-semibold text-zinc-100">
+        <div className="flex items-center justify-between px-6 pt-6 pb-0">
+          <h2 id="modal-title" className="text-lg font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">
             {title}
           </h2>
           <button
@@ -101,7 +93,9 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             </svg>
           </button>
         </div>
-        {children}
+        <div className="p-6">
+          {children}
+        </div>
       </div>
     </div>
   );

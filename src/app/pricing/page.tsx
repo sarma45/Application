@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 const plans = [
   {
@@ -108,7 +108,7 @@ export default function PricingPage() {
     <div className="container-main py-16">
       <div className="text-center mb-12">
         <Badge variant="purple" className="mb-4">Pricing</Badge>
-        <h1 className="text-4xl font-bold text-white">Simple, transparent pricing</h1>
+        <h1 className="text-4xl font-bold text-white font-[family-name:var(--font-neural)]">Simple, transparent pricing</h1>
         <p className="mt-2 text-zinc-400">Choose the plan that fits your needs</p>
       </div>
 
@@ -116,7 +116,7 @@ export default function PricingPage() {
         {plans.map((plan) => (
           <Card
             key={plan.name}
-            className={`relative p-6 flex flex-col ${plan.popular ? "border-purple-500 ring-1 ring-purple-500" : ""}`}
+            className={`relative p-6 flex flex-col ${plan.popular ? "ring-1 ring-purple-500/50" : ""}`}
           >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -124,9 +124,9 @@ export default function PricingPage() {
               </div>
             )}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-zinc-100">{plan.name}</h3>
+              <h3 className="text-lg font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">{plan.name}</h3>
               <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white">
+                <span className="text-3xl font-bold text-white font-[family-name:var(--font-neural)]">
                   {plan.price === 0 ? "Free" : `$${plan.price}`}
                 </span>
                 {plan.price > 0 && <span className="text-sm text-zinc-500">/mo</span>}
@@ -161,7 +161,7 @@ export default function PricingPage() {
       <div className="mt-12 text-center">
         <p className="text-sm text-zinc-500">
           Need enterprise features?{" "}
-          <a href="mailto:sales@aiverse.ai" className="text-purple-400 hover:text-purple-300">
+          <a href="mailto:sales@aiverse.ai" className="text-purple-400 hover:text-purple-300 transition-colors">
             Contact our sales team
           </a>
         </p>

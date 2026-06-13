@@ -52,30 +52,30 @@ function VerifyEmailContent() {
         <CardContent className="p-8">
           {status === "loading" && (
             <div className="flex flex-col items-center gap-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+              <div className="h-8 w-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
               <p className="text-zinc-400">{message}</p>
             </div>
           )}
           {status === "success" && (
             <>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-900/50">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full glass">
                 <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-zinc-100 mb-2">Email Verified!</h2>
+              <h2 className="text-lg font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Email Verified!</h2>
               <p className="text-sm text-zinc-500 mb-6">{message}</p>
               <Button onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
             </>
           )}
           {status === "error" && (
             <>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-900/50">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full glass">
                 <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h2 className="text-lg font-semibold text-zinc-100 mb-2">Verification Failed</h2>
+              <h2 className="text-lg font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Verification Failed</h2>
               <p className="text-sm text-red-400 mb-6">{message}</p>
               <Button variant="secondary" onClick={() => router.push("/")}>Go Home</Button>
             </>
@@ -90,7 +90,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+        <div className="h-8 w-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
       </div>
     }>
       <VerifyEmailContent />

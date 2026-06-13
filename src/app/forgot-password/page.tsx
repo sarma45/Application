@@ -44,12 +44,12 @@ export default function ForgotPasswordPage() {
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
         <Card className="w-full max-w-sm text-center">
           <CardContent className="p-6">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-900/50">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full glass">
               <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold text-zinc-100 mb-2">Check your email</h1>
+            <h1 className="text-xl font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Check your email</h1>
             <p className="text-sm text-zinc-500 mb-4">
               If an account exists with that email, we&apos;ve sent a password reset link.
             </p>
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="text-center">
-            <h1 className="text-xl font-semibold text-zinc-100">Reset your password</h1>
+            <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Reset your password</h1>
             <p className="mt-1 text-sm text-zinc-500">Enter your email and we&apos;ll send you a reset link</p>
           </div>
         </CardHeader>
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
           </form>
           <p className="mt-4 text-center text-sm text-zinc-500">
             Remember your password?{" "}
-            <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
+            <Link href="/login" className="text-purple-400 hover:text-stream-400 transition-colors">
               Sign in
             </Link>
           </p>

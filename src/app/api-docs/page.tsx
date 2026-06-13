@@ -91,9 +91,7 @@ function MethodBadge({ method }: { method: string }) {
     DELETE: "bg-red-600",
   };
   return (
-    <span
-      className={`inline-block px-2 py-0.5 text-xs font-mono font-bold text-white rounded ${colors[method] || "bg-gray-600"}`}
-    >
+    <span className={`inline-block px-2 py-0.5 text-xs font-mono font-bold text-white rounded ${colors[method] || "bg-gray-600"}`}>
       {method}
     </span>
   );
@@ -102,13 +100,13 @@ function MethodBadge({ method }: { method: string }) {
 export default function ApiDocsPage() {
   return (
     <div className="container-main py-8">
-      <h1 className="text-2xl font-bold text-white mb-2">API Documentation</h1>
+      <h1 className="text-2xl font-bold text-white mb-2 font-[family-name:var(--font-neural)]">API Documentation</h1>
       <p className="text-sm text-zinc-500 mb-8">
         AIVerse 2.0 REST API &mdash; base URL: <code className="text-purple-400">{process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}</code>
       </p>
 
-      <div className="mb-8 p-4 rounded-lg border border-zinc-800 bg-zinc-900/50">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-2">Authentication</h2>
+      <div className="mb-8 p-5 rounded-lg glass glass-strong">
+        <h2 className="text-lg font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Authentication</h2>
         <p className="text-sm text-zinc-500 mb-2">
           Most endpoints require a valid session cookie (HTTP-only, set by NextAuth). Include credentials or the
           <code className="text-purple-400"> next-auth.session-token</code> cookie.
@@ -120,14 +118,14 @@ export default function ApiDocsPage() {
 
       {API_ENDPOINTS.map((group) => (
         <div key={group.group} className="mb-10">
-          <h2 className="text-lg font-semibold text-white mb-4 border-b border-zinc-800 pb-2">
+          <h2 className="text-lg font-semibold text-white mb-4 border-b border-white/5 pb-2 font-[family-name:var(--font-neural)]">
             {group.group}
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {group.endpoints.map((ep) => (
               <div
                 key={`${ep.method}-${ep.path}`}
-                className="flex items-start gap-3 p-3 rounded-lg border border-zinc-800/50 bg-zinc-900/30"
+                className="flex items-start gap-3 p-3 rounded-lg glass"
               >
                 <div className="shrink-0 pt-0.5">
                   <MethodBadge method={ep.method} />
@@ -139,13 +137,11 @@ export default function ApiDocsPage() {
                   <p className="text-sm text-zinc-500 mt-0.5">{ep.desc}</p>
                 </div>
                 <div className="shrink-0">
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded font-medium ${
-                      ep.auth
-                        ? "bg-yellow-900/50 text-yellow-400"
-                        : "bg-emerald-900/50 text-emerald-400"
-                    }`}
-                  >
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium backdrop-blur-sm ${
+                    ep.auth
+                      ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20"
+                      : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                  }`}>
                     {ep.auth ? "Auth required" : "Public"}
                   </span>
                 </div>
@@ -155,22 +151,22 @@ export default function ApiDocsPage() {
         </div>
       ))}
 
-      <div className="mt-12 p-6 rounded-lg border border-zinc-800 bg-zinc-900/50">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-3">Error Response Format</h2>
-        <pre className="text-sm text-zinc-300 bg-zinc-950 p-3 rounded overflow-x-auto">
+      <div className="mt-12 p-6 rounded-lg glass glass-strong">
+        <h2 className="text-lg font-semibold text-zinc-100 mb-3 font-[family-name:var(--font-neural)]">Error Response Format</h2>
+        <pre className="text-sm text-zinc-300 rounded overflow-x-auto">
 {`{
   "error": "Human-readable error message"
 }`}
         </pre>
       </div>
 
-      <div className="mt-6 p-6 rounded-lg border border-zinc-800 bg-zinc-900/50">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-3">Pagination</h2>
+      <div className="mt-6 p-6 rounded-lg glass glass-strong">
+        <h2 className="text-lg font-semibold text-zinc-100 mb-3 font-[family-name:var(--font-neural)]">Pagination</h2>
         <p className="text-sm text-zinc-500 mb-2">
           List endpoints use cursor-based pagination. Include <code className="text-purple-400">?cursor=&lt;id&gt;&limit=20</code> to paginate.
           The response returns <code className="text-purple-400">nextCursor</code> (null if last page).
         </p>
-        <pre className="text-sm text-zinc-300 bg-zinc-950 p-3 rounded overflow-x-auto">
+        <pre className="text-sm text-zinc-300 rounded overflow-x-auto">
 {`{
   "data": [...],
   "nextCursor": "abc123" | null
