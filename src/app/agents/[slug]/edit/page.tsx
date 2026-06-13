@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { AGENT_CREDITS_PER_RUN_MAX } from "@/lib/limits";
 
 const categories = ["CHAT", "CODE", "DATA", "WORKFLOW"];
 
@@ -163,6 +164,7 @@ export default function EditAgentPage() {
               label="Credits per Run"
               type="number"
               min="0"
+              max={AGENT_CREDITS_PER_RUN_MAX}
               defaultValue={agent.creditsPerRun}
             />
 

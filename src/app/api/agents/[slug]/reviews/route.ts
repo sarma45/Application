@@ -53,12 +53,31 @@ export async function POST(
       const aggregate = await tx.agentReview.aggregate({
         where: { agentId: agent.id },
         _avg: { rating: true },
+        _count: true,
       });
 
       await tx.agent.update({
         where: { id: agent.id },
         data: { avgRating: aggregate._avg.rating },
       });
+
+      if (aggregate._avg.rating !== null && aggregate._avg.rating < 2.0 && aggregate._count >= 20) {
+        if (!agent.isFlagged) {
+          await tx.agent.update({
+            where: { id: agent.id },
+            data: { isFlagged: true },
+          });
+          await tx.auditLog.create({
+            data: {
+              actorId: session.user.id,
+              action: "AGENT_AUTO_FLAGGED",
+              targetType: "agent",
+              targetId: agent.id,
+              metadata: JSON.stringify({ avgRating: aggregate._avg.rating, reviewCount: aggregate._count, reason: "avg_rating_below_2.0_with_20+_reviews" }),
+            },
+          });
+        }
+      }
 
       return r;
     });

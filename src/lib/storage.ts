@@ -1,3 +1,4 @@
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { logger } from "./logger";
 
 interface StorageConfig {
@@ -21,6 +22,27 @@ function getConfig(): StorageConfig | null {
   return { endpoint, region, accessKey, secretKey, bucket, publicUrl };
 }
 
+let s3Client: S3Client | null = null;
+
+function getS3Client(config: StorageConfig): S3Client {
+  if (!s3Client) {
+    s3Client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKey,
+        secretAccessKey: config.secretKey,
+      },
+      forcePathStyle: true,
+    });
+  }
+  return s3Client;
+}
+
+export function resetS3Client(): void {
+  s3Client = null;
+}
+
 export async function uploadFile(
   key: string,
   body: Buffer,
@@ -33,19 +55,7 @@ export async function uploadFile(
   }
 
   try {
-    const { S3Client, PutObjectCommand } = await import(
-      "@aws-sdk/client-s3"
-    );
-    const client = new S3Client({
-      endpoint: config.endpoint,
-      region: config.region,
-      credentials: {
-        accessKeyId: config.accessKey,
-        secretAccessKey: config.secretKey,
-      },
-      forcePathStyle: true,
-    });
-
+    const client = getS3Client(config);
     await client.send(
       new PutObjectCommand({
         Bucket: config.bucket,
@@ -67,19 +77,7 @@ export async function deleteFile(key: string): Promise<boolean> {
   if (!config) return false;
 
   try {
-    const { S3Client, DeleteObjectCommand } = await import(
-      "@aws-sdk/client-s3"
-    );
-    const client = new S3Client({
-      endpoint: config.endpoint,
-      region: config.region,
-      credentials: {
-        accessKeyId: config.accessKey,
-        secretAccessKey: config.secretKey,
-      },
-      forcePathStyle: true,
-    });
-
+    const client = getS3Client(config);
     await client.send(
       new DeleteObjectCommand({
         Bucket: config.bucket,
@@ -87,7 +85,8 @@ export async function deleteFile(key: string): Promise<boolean> {
       })
     );
     return true;
-  } catch {
+  } catch (err) {
+    logger.error("S3 delete failed", { key, error: err });
     return false;
   }
 }

@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.google-analytics.com",
@@ -17,6 +18,31 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
+  webpack(config) {
+    config.plugins.push({
+      apply(compiler) {
+        compiler.hooks.done.tap("AIVerseWebpackDiagnosticsPlugin", (stats) => {
+          if (!stats.hasErrors()) return;
+
+          const info = stats.toJson({
+            all: false,
+            errors: true,
+            errorDetails: true,
+            moduleTrace: true,
+          });
+
+          for (const error of info.errors ?? []) {
+            console.error("[webpack:error]", error.message);
+            if (error.moduleName) console.error("[webpack:module]", error.moduleName);
+            if (error.details) console.error("[webpack:details]", error.details);
+            if (error.stack) console.error("[webpack:stack]", error.stack);
+          }
+        });
+      },
+    });
+
+    return config;
+  },
   async headers() {
     return [
       {

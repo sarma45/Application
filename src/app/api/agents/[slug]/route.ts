@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
-import { cacheDel } from "@/lib/redis";
+import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from "@/lib/redis";
 import { updateAgentSchema } from "@/lib/validations";
+import { generateEmbedding } from "@/lib/ai/embeddings";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,11 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+
+  const cached = await cacheGet<any>(`agent:${slug}`);
+  if (cached) {
+    return NextResponse.json({ agent: cached });
+  }
 
   const agent = await prisma.agent.findUnique({
     where: { slug },
@@ -23,6 +29,8 @@ export async function GET(
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
+
+  await cacheSet(`agent:${slug}`, agent, CACHE_TTL.AGENT_DETAIL);
 
   return NextResponse.json({ agent });
 }
@@ -45,7 +53,7 @@ export async function PATCH(
       return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const agent = await prisma.agent.findUnique({ where: { slug } });
+    const agent = await prisma.agent.findUnique({ where: { slug }, select: { id: true, creatorId: true } });
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
@@ -60,6 +68,13 @@ export async function PATCH(
     });
 
     await cacheDel(`agent:${slug}`);
+
+    const textForEmbedding = `${updated.name} ${updated.systemPrompt}`;
+    generateEmbedding(textForEmbedding).then((embedding) => {
+      if (embedding.length > 0) {
+        prisma.$executeRawUnsafe(`UPDATE "Agent" SET embedding = $1::vector WHERE id = $2`, JSON.stringify(embedding), agent.id).catch(() => {});
+      }
+    });
 
     return NextResponse.json({ ok: true, agent: updated });
   } catch (error) {
@@ -80,7 +95,7 @@ export async function DELETE(
   const { slug } = await params;
 
   try {
-    const agent = await prisma.agent.findUnique({ where: { slug } });
+    const agent = await prisma.agent.findUnique({ where: { slug }, select: { id: true, creatorId: true } });
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }

@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { DeleteAccountButton } from "./delete-account-button";
 
 export default async function SettingsPage() {
   const session = await requireAuth();
@@ -54,10 +54,7 @@ export default async function SettingsPage() {
           <p className="text-sm text-zinc-500 mb-4">
             Once you delete your account, there is no going back. Please be certain.
           </p>
-          <form action="/api/users/me" method="POST">
-            <input type="hidden" name="_method" value="DELETE" />
-            <Button variant="destructive">Delete Account</Button>
-          </form>
+          <DeleteAccountButton />
         </CardContent>
       </Card>
     </div>

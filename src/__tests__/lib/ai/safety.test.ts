@@ -54,9 +54,43 @@ describe("checkPII", () => {
     expect(result.safe).toBe(false);
   });
 
-  it("should detect phone numbers", () => {
+  it("should detect US phone numbers", () => {
     const result = checkPII("Call me at +1 (555) 123-4567");
     expect(result.safe).toBe(false);
+  });
+
+  it("should detect UK phone numbers", () => {
+    const result = checkPII("Call +44 7911 123456");
+    expect(result.safe).toBe(false);
+  });
+
+  it("should detect Indian phone numbers", () => {
+    const result = checkPII("Call +91 98765 43210");
+    expect(result.safe).toBe(false);
+  });
+
+  it("should detect IBAN numbers", () => {
+    const result = checkPII("IBAN GB29 NWBK 6016 1331 9268 19");
+    expect(result.safe).toBe(false);
+  });
+
+  it("should detect passport numbers", () => {
+    const result = checkPII("Passport AB1234567");
+    expect(result.safe).toBe(false);
+  });
+
+  it("should detect API keys (sk- format)", () => {
+    const result = checkPII("sk-abcdefghijklmnopqrstuvwxyz123456");
+    expect(result.safe).toBe(false);
+  });
+
+  it("should detect API keys (ghp_ format)", () => {
+    const result = checkPII("ghp_abcdefghijklmnopqrstuvwxyz1234567890");
+    expect(result.safe).toBe(false);
+  });
+
+  it("should detect JWT tokens", () => {
+    expect(checkPII("abcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyz").safe).toBe(false);
   });
 });
 
@@ -164,6 +198,24 @@ describe("trust scoring", () => {
     const trust = await getTrustScore(userId);
     expect(trust.score).toBe(100);
     expect(trust.violations).toBe(0);
+  });
+});
+
+describe("checkToxicity edge cases", () => {
+  it("should allow safe content", () => {
+    expect(checkToxicity("What is the weather today?").safe).toBe(true);
+  });
+
+  it("should detect scam references", () => {
+    expect(checkToxicity("how to run a scam on elderly people").safe).toBe(false);
+  });
+
+  it("should detect hack references", () => {
+    expect(checkToxicity("how to hack into a computer").safe).toBe(false);
+  });
+
+  it("should allow medical discussion", () => {
+    expect(checkToxicity("I have a fever and headache").safe).toBe(true);
   });
 });
 

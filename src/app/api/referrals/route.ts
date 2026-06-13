@@ -77,20 +77,32 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Cannot use your own referral code" }, { status: 400 });
     }
 
-    if (referral.status !== "PENDING") {
-      return NextResponse.json({ error: "Referral code already used" }, { status: 400 });
+    if (referral.referrerId === session.user.id) {
+      return NextResponse.json({ error: "Cannot use your own referral code" }, { status: 400 });
     }
 
+    const REFERRAL_BONUS = 50;
+
     await prisma.$transaction(async (tx) => {
-      await tx.referral.update({
-        where: { id: referral.id },
-        data: { refereeId: session.user.id, status: "COMPLETED", rewardGiven: 50 },
+      const updated = await tx.referral.updateMany({
+        where: { id: referral.id, status: "PENDING" },
+        data: { refereeId: session.user.id, status: "COMPLETED", rewardGiven: REFERRAL_BONUS },
       });
+
+      if (updated.count === 0) {
+        throw new Error("Referral code already used");
+      }
 
       await tx.wallet.upsert({
         where: { userId: referral.referrerId },
-        update: { balance: { increment: 50 }, lifetimeEarned: { increment: 50 } },
-        create: { userId: referral.referrerId, balance: 50, lifetimeEarned: 50, lifetimeSpent: 0 },
+        update: { balance: { increment: REFERRAL_BONUS }, lifetimeEarned: { increment: REFERRAL_BONUS } },
+        create: { userId: referral.referrerId, balance: REFERRAL_BONUS, lifetimeEarned: REFERRAL_BONUS, lifetimeSpent: 0 },
+      });
+
+      await tx.wallet.upsert({
+        where: { userId: session.user.id },
+        update: { balance: { increment: REFERRAL_BONUS }, lifetimeEarned: { increment: REFERRAL_BONUS } },
+        create: { userId: session.user.id, balance: REFERRAL_BONUS, lifetimeEarned: REFERRAL_BONUS, lifetimeSpent: 0 },
       });
 
       const refWallet = await tx.wallet.findUnique({
@@ -98,12 +110,28 @@ export async function PUT(req: Request) {
         select: { balance: true },
       });
 
+      const refWallet2 = await tx.wallet.findUnique({
+        where: { userId: session.user.id },
+        select: { balance: true },
+      });
+
       await tx.transaction.create({
         data: {
           userId: referral.referrerId,
           type: "BONUS",
-          amount: 50,
-          balanceAfter: (refWallet?.balance ?? 0) + 50,
+          amount: REFERRAL_BONUS,
+          balanceAfter: (refWallet?.balance ?? 0),
+          referenceType: "Referral",
+          referenceId: referral.id,
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId: session.user.id,
+          type: "BONUS",
+          amount: REFERRAL_BONUS,
+          balanceAfter: (refWallet2?.balance ?? 0),
           referenceType: "Referral",
           referenceId: referral.id,
         },
@@ -115,7 +143,7 @@ export async function PUT(req: Request) {
       refereeId: session.user.id,
     });
 
-    return NextResponse.json({ ok: true, message: "Referral code applied! You got 50 bonus credits." });
+    return NextResponse.json({ ok: true, message: `Referral code applied! You and the referrer each got ${REFERRAL_BONUS} bonus credits.` });
   } catch (error) {
     logger.error("Referral redeem error", { error: String(error) });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

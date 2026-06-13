@@ -2,13 +2,31 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcrypt";
 
 export const runtime = "nodejs";
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { password } = await req.json().catch(() => ({}));
+  if (!password) {
+    return NextResponse.json({ error: "Password confirmation required" }, { status: 400 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { password: true },
+  });
+
+  if (user?.password) {
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return NextResponse.json({ error: "Invalid password" }, { status: 403 });
+    }
   }
 
   await prisma.$transaction(async (tx) => {

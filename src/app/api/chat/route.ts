@@ -4,12 +4,13 @@ import { authOptions } from '@/lib/auth-config';
 import { complete } from '@/lib/ai/gateway';
 import { chatSchema } from '@/lib/validations';
 import { checkSafety, sanitizeInput } from '@/lib/ai/safety';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
       model: result.model
     });
   } catch (error) {
-    console.error('chat route error', error);
+    logger.error('chat route error', { error: String(error) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

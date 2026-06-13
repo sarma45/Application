@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { cacheDel } from "@/lib/redis";
 
 export const runtime = "nodejs";
 
@@ -16,27 +17,26 @@ export async function POST(
 
   const { id } = await params;
 
-  const agent = await prisma.agent.findUnique({ where: { id }, select: { status: true } });
+  const agent = await prisma.agent.findUnique({ where: { id } });
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
-  if (agent.status !== "PENDING") {
-    return NextResponse.json({ error: "Agent is not in PENDING status" }, { status: 400 });
-  }
 
-  await prisma.agent.update({
+  const updated = await prisma.agent.update({
     where: { id },
-    data: { status: "APPROVED" },
+    data: { isFeatured: !agent.isFeatured },
   });
 
   await prisma.auditLog.create({
     data: {
       actorId: session.user.id,
-      action: "AGENT_APPROVED",
+      action: updated.isFeatured ? "AGENT_FEATURED" : "AGENT_UNFEATURED",
       targetType: "agent",
       targetId: id,
     },
   });
 
-  return NextResponse.json({ ok: true, status: "APPROVED" });
+  await cacheDel("home:featured");
+
+  return NextResponse.json({ ok: true, isFeatured: updated.isFeatured });
 }

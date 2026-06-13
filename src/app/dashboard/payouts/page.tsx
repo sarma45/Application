@@ -61,7 +61,42 @@ export default function PayoutsPage() {
           <p className="text-sm text-zinc-500 mb-4">
             Minimum payout: $10 equivalent (10,000 credits). Payouts processed on the 1st of each month.
           </p>
-          <form action="/api/payouts/request" method="POST">
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const amountUsd = parseFloat(new FormData(form).get("amountUsd") as string);
+            if (!amountUsd || amountUsd < 10) return alert("Minimum payout is $10");
+            try {
+              const res = await fetch("/api/payouts/request", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amountUsd }),
+              });
+              if (!res.ok) {
+                const data = await res.json();
+                alert(data.error || "Request failed");
+              } else {
+                window.location.reload();
+              }
+            } catch {
+              alert("Request failed");
+            }
+          }}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm text-zinc-400">$</span>
+              <input
+                name="amountUsd"
+                type="number"
+                step="0.01"
+                min="10"
+                max={((balance * 0.001)).toFixed(2)}
+                defaultValue={Math.max(10, Math.floor(balance * 0.001 * 100) / 100)}
+                className="w-32 rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <span className="text-xs text-zinc-500">
+                Balance: ${(balance * 0.001).toFixed(2)}
+              </span>
+            </div>
             <Button type="submit" variant="primary">Request Payout</Button>
           </form>
         </CardContent>

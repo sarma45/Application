@@ -3,15 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatCredits } from "@/lib/utils";
+import { CREDIT_PACKAGES } from "@/lib/stripe";
 import Link from "next/link";
 
-const creditPackages = [
-  { credits: 100, price: 1.99 },
-  { credits: 500, price: 7.99 },
-  { credits: 1500, price: 19.99 },
-  { credits: 5000, price: 49.99 },
-  { credits: 20000, price: 149.99 },
-];
+const creditPackages = Object.entries(CREDIT_PACKAGES).map(([credits, price]) => ({
+  credits: Number(credits),
+  price,
+}));
 
 export default async function WalletPage() {
   const session = await requireAuth();
@@ -108,7 +106,7 @@ export default async function WalletPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-zinc-400 mb-2">Current plan: <span className="text-white font-medium">{session.user.plan}</span></p>
-              <Link href="/wallet">
+              <Link href="/pricing">
                 <Button variant="secondary" size="sm" className="w-full">Upgrade</Button>
               </Link>
             </CardContent>

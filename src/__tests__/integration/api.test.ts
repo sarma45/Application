@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { registerSchema, executeSchema, createReviewSchema, checkoutSchema } from "@/lib/validations";
+import {
+  AGENT_EXECUTION_MESSAGE_MAX_LENGTH,
+  registerSchema,
+  executeSchema,
+  createReviewSchema,
+  checkoutSchema,
+} from "@/lib/validations";
 
 describe("API Schema Integration", () => {
   describe("Registration flow", () => {
@@ -32,7 +38,7 @@ describe("API Schema Integration", () => {
 
     it("should reject oversized messages", () => {
       const result = executeSchema.safeParse({
-        message: "x".repeat(50001),
+        message: "x".repeat(AGENT_EXECUTION_MESSAGE_MAX_LENGTH + 1),
       });
       expect(result.success).toBe(false);
     });

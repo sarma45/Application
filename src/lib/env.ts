@@ -3,6 +3,11 @@ export const requiredEnv = [
   "AUTH_SECRET",
 ] as const;
 
+export const warnEnv = [
+  "OPENROUTER_API_KEY",
+  "RESEND_API_KEY",
+] as const;
+
 export type RequiredEnv = typeof requiredEnv[number];
 
 export function assertEnv() {
@@ -34,3 +39,21 @@ export function getEnv() {
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   };
 }
+
+export function warnMissingServices() {
+  const warnings: string[] = [];
+  if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+    warnings.push("No AI provider API keys configured (OPENROUTER_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY)");
+  }
+  if (!process.env.RESEND_API_KEY) {
+    warnings.push("No email provider configured (RESEND_API_KEY). Password reset and verification emails will not be sent.");
+  }
+  if (!process.env.STRIPE_SECRET && !process.env.RAZORPAY_KEY_ID) {
+    warnings.push("No payment provider configured (STRIPE_SECRET or RAZORPAY_KEY_ID). Credit purchases will be unavailable.");
+  }
+  if (warnings.length > 0 && process.env.NODE_ENV !== "production") {
+    console.warn("[AIVerse] Service warnings:\n  - " + warnings.join("\n  - "));
+  }
+}
+
+warnMissingServices();

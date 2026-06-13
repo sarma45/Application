@@ -14,6 +14,9 @@ export async function POST(req: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    await prisma.passwordReset.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
     const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {

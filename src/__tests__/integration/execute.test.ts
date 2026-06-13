@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { executeSchema } from "@/lib/validations";
+import { AGENT_EXECUTION_MESSAGE_MAX_LENGTH, executeSchema } from "@/lib/validations";
 
 describe("Agent Execution - Schema Validation", () => {
   it("should accept valid execution input", () => {
@@ -16,7 +16,7 @@ describe("Agent Execution - Schema Validation", () => {
   });
 
   it("should reject message exceeding max length", () => {
-    const result = executeSchema.safeParse({ message: "a".repeat(50001) });
+    const result = executeSchema.safeParse({ message: "a".repeat(AGENT_EXECUTION_MESSAGE_MAX_LENGTH + 1) });
     expect(result.success).toBe(false);
   });
 

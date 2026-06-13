@@ -1,4 +1,15 @@
 import { z } from "zod";
+import {
+  AGENT_CREDITS_PER_RUN_MAX,
+  AGENT_EXECUTION_MESSAGE_MAX_LENGTH,
+  AGENT_SYSTEM_PROMPT_MAX_LENGTH,
+} from "@/lib/limits";
+
+export {
+  AGENT_CREDITS_PER_RUN_MAX,
+  AGENT_EXECUTION_MESSAGE_MAX_LENGTH,
+  AGENT_SYSTEM_PROMPT_MAX_LENGTH,
+};
 
 export const registerSchema = z.object({
   email: z.string().email().max(255).transform(v => v.trim().toLowerCase()),
@@ -10,30 +21,31 @@ export const registerSchema = z.object({
 
 export const createAgentSchema = z.object({
   name: z.string().min(1).max(200),
-  slug: z.string().max(200).optional(),
+  slug: z.string().max(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens").optional(),
   category: z.enum(["CHAT", "CODE", "DATA", "WORKFLOW"]),
-  systemPrompt: z.string().max(10000).optional().default(""),
+  systemPrompt: z.string().max(AGENT_SYSTEM_PROMPT_MAX_LENGTH).optional().default(""),
   pricingType: z.enum(["FREE", "PAID"]).optional().default("FREE"),
-  creditsPerRun: z.number().int().min(0).max(10000).optional().default(0),
+  creditsPerRun: z.number().int().min(0).max(AGENT_CREDITS_PER_RUN_MAX).optional().default(0),
 });
 
 export const updateAgentSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   category: z.enum(["CHAT", "CODE", "DATA", "WORKFLOW"]).optional(),
-  systemPrompt: z.string().max(10000).optional(),
+  systemPrompt: z.string().max(AGENT_SYSTEM_PROMPT_MAX_LENGTH).optional(),
   pricingType: z.enum(["FREE", "PAID"]).optional(),
-  creditsPerRun: z.number().int().min(0).max(10000).optional(),
+  creditsPerRun: z.number().int().min(0).max(AGENT_CREDITS_PER_RUN_MAX).optional(),
   status: z.string().optional(),
 });
 
 export const listAgentsSchema = z.object({
   category: z.string().optional(),
   q: z.string().max(200).optional(),
+  mine: z.string().optional(),
 });
 
 export const executeSchema = z.object({
-  message: z.string().min(1).max(10000),
-  systemPrompt: z.string().max(10000).optional(),
+  message: z.string().min(1).max(AGENT_EXECUTION_MESSAGE_MAX_LENGTH),
+  systemPrompt: z.string().max(AGENT_SYSTEM_PROMPT_MAX_LENGTH).optional(),
   category: z.enum(["CHAT", "CODE", "DATA", "WORKFLOW"]).optional(),
   sessionId: z.string().max(200).optional(),
 });

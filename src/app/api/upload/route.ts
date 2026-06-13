@@ -16,6 +16,18 @@ const ALLOWED_TYPES = [
   "text/plain",
 ];
 
+const MAGIC_BYTES: Record<string, Uint8Array[]> = {
+  "application/pdf": [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+};
+
+function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  const signatures = MAGIC_BYTES[mimeType];
+  if (!signatures) return true;
+  return signatures.some(sig => sig.every((byte, i) => buffer[i] === byte));
+}
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -46,6 +58,11 @@ export async function POST(req: Request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    if (!validateMagicBytes(buffer, file.type)) {
+      return NextResponse.json({ error: "File content does not match declared type" }, { status: 400 });
+    }
+
     const key = `uploads/${session.user.id}/${Date.now()}-${file.name}`;
 
     const url = await uploadFile(key, buffer, file.type);

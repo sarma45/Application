@@ -6,7 +6,9 @@ import { z } from "zod";
 
 const resetSchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8).max(128),
+  password: z.string().min(8).max(128).refine(v => /[A-Z]/.test(v), "Must contain uppercase letter")
+    .refine(v => /[a-z]/.test(v), "Must contain lowercase letter")
+    .refine(v => /[0-9]/.test(v), "Must contain digit"),
 });
 
 export const runtime = "nodejs";
@@ -22,16 +24,8 @@ export async function POST(req: Request) {
     const { token, password } = parsed.data;
 
     const resetRecord = await prisma.passwordReset.findUnique({ where: { token } });
-    if (!resetRecord) {
+    if (!resetRecord || resetRecord.usedAt || new Date() > resetRecord.expiresAt) {
       return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
-    }
-
-    if (resetRecord.usedAt) {
-      return NextResponse.json({ error: "Token already used" }, { status: 400 });
-    }
-
-    if (new Date() > resetRecord.expiresAt) {
-      return NextResponse.json({ error: "Token expired" }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -39,7 +33,7 @@ export async function POST(req: Request) {
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: resetRecord.userId },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, passwordChangedAt: new Date() },
       });
       await tx.passwordReset.update({
         where: { id: resetRecord.id },

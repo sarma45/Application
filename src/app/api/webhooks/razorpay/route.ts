@@ -1,30 +1,66 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyRazorpayPayment } from "@/lib/razorpay";
 import { logger } from "@/lib/logger";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const { orderId, paymentId, signature } = body;
+function verifyRazorpayWebhookSignature(body: string, signature: string, secret: string): boolean {
+  try {
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(body)
+      .digest("hex");
+    return crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
 
-  if (!orderId || !paymentId || !signature) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+export async function POST(req: Request) {
+  const razorpaySignature = req.headers.get("x-razorpay-signature");
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    logger.error("RAZORPAY_WEBHOOK_SECRET not configured");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
   }
 
-  const valid = await verifyRazorpayPayment(orderId, paymentId, signature);
-  if (!valid) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  const rawBody = await req.text();
+
+  if (!razorpaySignature || !verifyRazorpayWebhookSignature(rawBody, razorpaySignature, webhookSecret)) {
+    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+  }
+
+  let body: any;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const event = body.event;
+  if (event !== "payment.captured" && event !== "order.paid") {
+    return NextResponse.json({ received: true });
+  }
+
+  const paymentEntity = body.payload?.payment?.entity;
+  const orderEntity = body.payload?.order?.entity;
+  const paymentId = paymentEntity?.id;
+  const orderId = orderEntity?.id || paymentEntity?.order_id;
+
+  if (!paymentId || !orderId) {
+    logger.warn("Razorpay webhook missing payment/order data", { event, body });
+    return NextResponse.json({ received: true });
   }
 
   try {
-    const payment = await prisma.payment.findFirst({
+    const existing = await prisma.payment.findFirst({
       where: { providerPaymentId: paymentId },
     });
 
-    if (payment) {
-      return NextResponse.json({ ok: true, message: "Already processed" });
+    if (existing) {
+      return NextResponse.json({ received: true, deduplicated: true });
     }
 
     const pendingPayment = await prisma.payment.findFirst({
@@ -63,7 +99,7 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ received: true });
   } catch (err) {
     logger.error("Razorpay webhook error", { error: err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -24,6 +24,29 @@ export async function POST(req: Request) {
       );
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { createdAt: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const daysSinceCreation = Math.floor((Date.now() - user.createdAt.getTime()) / 86400000);
+    const firstPayoutHoldDays = 30;
+
+    const existingPayouts = await prisma.creatorPayout.findFirst({
+      where: { creatorId: session.user.id, status: "COMPLETED" },
+    });
+
+    if (!existingPayouts && daysSinceCreation < firstPayoutHoldDays) {
+      return NextResponse.json(
+        { error: `First payout requires ${firstPayoutHoldDays} days account age. You have ${daysSinceCreation} day(s).` },
+        { status: 400 }
+      );
+    }
+
     const creatorProfile = await prisma.creatorProfile.findUnique({
       where: { userId: session.user.id },
     });
@@ -46,9 +69,18 @@ export async function POST(req: Request) {
     }
 
     const payout = await prisma.$transaction(async (tx) => {
+      const currentWallet = await tx.wallet.findUnique({
+        where: { userId: session.user.id },
+        select: { balance: true, lifetimeEarned: true },
+      });
+
+      if (!currentWallet || currentWallet.lifetimeEarned < creditsNeeded || currentWallet.balance < creditsNeeded) {
+        throw new Error("Insufficient earned credits for this payout amount");
+      }
+
       await tx.wallet.update({
         where: { userId: session.user.id },
-        data: { balance: { decrement: creditsNeeded }, lifetimeEarned: wallet.lifetimeEarned - creditsNeeded },
+        data: { balance: { decrement: creditsNeeded }, lifetimeEarned: { decrement: creditsNeeded } },
       });
 
       return tx.creatorPayout.create({

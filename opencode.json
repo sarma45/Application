@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "reference": {
+    "antigravity": {
+      "path": "/root/.gemini/antigravity-cli",
+      "description": "Google Gemini Code Assist (antigravity) CLI data directory with OAuth tokens and config"
+    }
+  },
+  "permission": {
+    "external_directory": {
+      "/root/.gemini/**": "allow",
+      "*": "allow"
+    }
+  }
+}

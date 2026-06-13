@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -36,7 +36,7 @@ interface AgentDetail {
 
 export default async function AgentDetailPage({ params }: AgentDetailPageProps) {
   const { slug } = await params;
-  const session = await requireAuth();
+  const session = await getSession();
 
   const cacheKey = `agent:${slug}`;
   let agent = await cacheGet<AgentDetail>(cacheKey);
@@ -53,7 +53,7 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
   if (!agent) notFound();
 
-  const isCreator = agent.creatorId === session.user.id;
+  const isCreator = session?.user?.id === agent.creatorId;
 
   return (
     <div className="container-main py-8">
@@ -175,7 +175,9 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
             <Card>
               <CardContent className="p-5 space-y-3">
                 <h3 className="text-sm font-semibold text-zinc-200">Management</h3>
-                <Button variant="secondary" size="sm" className="w-full">Edit Agent</Button>
+                <Link href={`/agents/${agent.slug}/edit`} className="w-full">
+                  <Button variant="secondary" size="sm" className="w-full">Edit Agent</Button>
+                </Link>
               </CardContent>
             </Card>
           )}

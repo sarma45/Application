@@ -63,21 +63,16 @@ export async function walletForUser(userId: string) {
 export async function debitCredits(userId: string, amount: number) {
   return prisma.$transaction(async (txClient: Prisma.TransactionClient) => {
     const wallet = await txClient.wallet.findUnique({
-      where: { userId },
+      where: { userId, balance: { gte: amount } },
       select: { id: true, balance: true, lifetimeSpent: true },
     });
     if (!wallet) {
-      throw new Error("Wallet not found");
-    }
-
-    const newBalance = wallet.balance - amount;
-    if (newBalance < 0) {
       throw new Error("Insufficient credits");
     }
 
     const updated = await txClient.wallet.update({
       where: { userId },
-      data: { balance: newBalance, lifetimeSpent: wallet.lifetimeSpent + amount },
+      data: { balance: { decrement: amount }, lifetimeSpent: { increment: amount } },
     });
 
     await txClient.transaction.create({
@@ -85,7 +80,7 @@ export async function debitCredits(userId: string, amount: number) {
         userId,
         type: "SPEND",
         amount,
-        balanceAfter: newBalance,
+        balanceAfter: updated.balance,
         referenceType: "AgentExecution",
         referenceId: "",
       },
@@ -97,17 +92,10 @@ export async function debitCredits(userId: string, amount: number) {
 
 export async function creditCredits(userId: string, amount: number, meta?: { referenceType?: string; referenceId?: string }) {
   return prisma.$transaction(async (txClient: Prisma.TransactionClient) => {
-    const wallet = await txClient.wallet.findUnique({
+    const updated = await txClient.wallet.upsert({
       where: { userId },
-      select: { id: true, balance: true, lifetimeEarned: true },
-    });
-    if (!wallet) {
-      throw new Error("Wallet not found");
-    }
-
-    const updated = await txClient.wallet.update({
-      where: { userId },
-      data: { balance: wallet.balance + amount, lifetimeEarned: wallet.lifetimeEarned + amount },
+      update: { balance: { increment: amount }, lifetimeEarned: { increment: amount } },
+      create: { userId, balance: amount, lifetimeEarned: amount, lifetimeSpent: 0 },
     });
 
     await txClient.transaction.create({

@@ -2,14 +2,13 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCredits } from "@/lib/utils";
+import { CREDIT_PACKAGES } from "@/lib/stripe";
 
-const CREDIT_PACKS = [
-  { credits: 100, price: 1.99, popular: false },
-  { credits: 500, price: 7.99, popular: false },
-  { credits: 1500, price: 19.99, popular: true },
-  { credits: 5000, price: 49.99, popular: false },
-  { credits: 20000, price: 149.99, popular: false },
-];
+const CREDIT_PACKS = Object.entries(CREDIT_PACKAGES).map(([credits, price]) => ({
+  credits: Number(credits),
+  price,
+  popular: Number(credits) === 1500,
+}));
 
 export default function CreditsPage() {
   return (

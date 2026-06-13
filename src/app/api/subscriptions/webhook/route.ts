@@ -8,9 +8,10 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const sig = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const stripeSecret = process.env.STRIPE_SECRET;
 
-  if (!sig || !webhookSecret) {
-    return NextResponse.json({ error: "Missing signature or secret" }, { status: 400 });
+  if (!sig || !webhookSecret || !stripeSecret) {
+    return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
   }
 
   const body = await req.text();
@@ -30,8 +31,13 @@ export async function POST(req: Request) {
       const subscriptionId = checkoutSession.subscription;
 
       if (userId && plan) {
-        const currentPeriodEnd = new Date();
-        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+        let currentPeriodEnd: Date | null = null;
+        if (subscriptionId) {
+          const stripeSub = await stripe.subscriptions.retrieve(subscriptionId) as any;
+          if (stripeSub?.current_period_end) {
+            currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
+          }
+        }
 
         const existing = await prisma.subscription.findFirst({ where: { userId } });
         const data = {

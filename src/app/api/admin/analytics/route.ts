@@ -5,6 +5,14 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const PLAN_MONTHLY_PRICES: Record<string, number> = {
+  FREE: 0,
+  PRO: 19,
+  CREATOR: 39,
+  BUSINESS: 99,
+  ENTERPRISE: 499,
+};
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !["ADMIN", "MODERATOR"].includes(session.user.role)) {
@@ -22,7 +30,9 @@ export async function GET() {
     totalExecutions,
     recentExecutions,
     totalRevenue,
-    mrr,
+    activeSubscriptions,
+    executionDayBuckets,
+    registrationDayBuckets,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.agent.count(),
@@ -30,21 +40,25 @@ export async function GET() {
     prisma.agent.count({ where: { status: "PENDING" } }),
     prisma.agentExecution.count(),
     prisma.agentExecution.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.payment.aggregate({ _sum: { amountUsd: true }, where: { status: "completed" } }),
-    prisma.subscription.count({ where: { status: "active" } }),
+    prisma.payment.aggregate({ _sum: { amountUsd: true }, where: { status: "COMPLETED" } }),
+    prisma.subscription.findMany({ where: { status: "active" }, select: { plan: true } }),
+    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT DATE(created_at) as date, COUNT(*)::int as count
+      FROM "AgentExecution"
+      WHERE created_at >= ${thirtyDaysAgo}
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `,
+    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT DATE(created_at) as date, COUNT(*)::int as count
+      FROM "User"
+      WHERE created_at >= ${thirtyDaysAgo}
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `,
   ]);
 
-  const executionsByDay = await prisma.agentExecution.groupBy({
-    by: ["createdAt"],
-    _count: { id: true },
-    where: { createdAt: { gte: thirtyDaysAgo } },
-  });
-
-  const registrationsByDay = await prisma.user.groupBy({
-    by: ["createdAt"],
-    _count: { id: true },
-    where: { createdAt: { gte: thirtyDaysAgo } },
-  });
+  const mrr = activeSubscriptions.reduce((sum, sub) => sum + (PLAN_MONTHLY_PRICES[sub.plan] || 0), 0);
 
   return NextResponse.json({
     metrics: {
@@ -55,11 +69,11 @@ export async function GET() {
       totalExecutions,
       recentExecutions,
       totalRevenue: totalRevenue._sum.amountUsd || 0,
-      mrr: (mrr || 0) * 19,
+      mrr,
     },
     charts: {
-      executionsByDay: executionsByDay.map((e) => ({ date: e.createdAt, count: e._count.id })),
-      registrationsByDay: registrationsByDay.map((e) => ({ date: e.createdAt, count: e._count.id })),
+      executionsByDay: executionDayBuckets.map((e) => ({ date: e.date, count: Number(e.count) })),
+      registrationsByDay: registrationDayBuckets.map((e) => ({ date: e.date, count: Number(e.count) })),
     },
   });
 }

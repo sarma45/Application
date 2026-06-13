@@ -37,8 +37,10 @@ const piiPatterns = [
   /\b(?:\d{4}[-\s]?){3}\d{4}\b/,
   // Email
   /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,
-  // Phone numbers (US/international)
-  /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/,
+  // Phone numbers (international)
+  /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,5}\)?[-.\s]?\d{2,5}[-.\s]?\d{3,5}\b/,
+  // IBAN
+  /\b[A-Z]{2}\d{2}\s?(?:\w{4}\s?){2,7}\w{1,4}\b/,
   // API keys / tokens (common patterns)
   /\b(?:sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36,}|[A-Za-z0-9_-]{20,40}\.[A-Za-z0-9_-]{20,40}\.[A-Za-z0-9_-]{20,40})\b/,
   // IP addresses
@@ -166,7 +168,7 @@ export function sanitizeInput(input: string): string {
   cleaned = cleaned.replace(/\b(?:\d{4}[-\s]?){3}\d{4}\b/g, "[REDACTED_CC]");
   cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[REDACTED_EMAIL]");
   cleaned = cleaned.replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
-  cleaned = cleaned.replace(/\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, "[REDACTED_PHONE]");
+  cleaned = cleaned.replace(/\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,5}\)?[-.\s]?\d{2,5}[-.\s]?\d{3,5}\b/g, "[REDACTED_PHONE]");
   cleaned = cleaned.replace(/\b(?:sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36,})/g, "[REDACTED_KEY]");
 
   return cleaned;

@@ -1,0 +1,47 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+    ignore:
+      - dependency-name: "next"
+        versions: [">=15.0.0"]
+    groups:
+      development-deps:
+        dependency-type: "development"
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "vitest*"
+          - "tailwindcss*"
+      prisma-deps:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      aws-deps:
+        patterns:
+          - "@aws-sdk/*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"

@@ -5,14 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ModerationActions } from "@/components/admin/moderation-actions";
+import { FeaturedToggle } from "@/components/admin/featured-toggle";
 
 export default async function AdminPage() {
   const session = await requireRole("ADMIN", "MODERATOR");
 
-  const [pendingAgents, allUsers, recentAuditLogs] = await Promise.all([
+  const [pendingAgents, allUsers, recentAuditLogs, featuredAgents] = await Promise.all([
     prisma.agent.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, include: { creator: { select: { email: true } } } }),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
     prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { actor: { select: { email: true } } } }),
+    prisma.agent.findMany({ where: { isFeatured: true }, orderBy: { totalRuns: "desc" }, take: 10, include: { creator: { select: { email: true } } } }),
   ]);
 
   return (
@@ -45,6 +47,31 @@ export default async function AdminPage() {
                         <p className="text-xs text-zinc-500">by {agent.creator.email} &middot; {agent.category}</p>
                       </div>
                       <ModerationActions agentId={agent.id} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-zinc-100">Featured Agents ({featuredAgents.length})</h2>
+              </div>
+              {featuredAgents.length === 0 ? (
+                <p className="text-sm text-zinc-500">No featured agents. Approve agents and feature them from the marketplace.</p>
+              ) : (
+                <div className="space-y-2">
+                  {featuredAgents.map((agent) => (
+                    <div key={agent.id} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50">
+                      <div>
+                        <Link href={`/agents/${agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-purple-400">
+                          {agent.name}
+                        </Link>
+                        <p className="text-xs text-zinc-500">by {agent.creator.email} &middot; {agent.totalRuns} runs</p>
+                      </div>
+                      <FeaturedToggle agentId={agent.id} isFeatured={agent.isFeatured} />
                     </div>
                   ))}
                 </div>

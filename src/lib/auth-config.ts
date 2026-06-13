@@ -1,4 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
@@ -106,12 +107,20 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user, account }) {
-      if (user) {
+      if (user || (token.email && token.iat)) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email as string || user.email! },
-          select: { id: true, email: true, username: true, role: true, plan: true },
+          where: { email: (user?.email || token.email) as string },
+          select: { id: true, email: true, username: true, role: true, plan: true, passwordChangedAt: true },
         });
+
         if (dbUser) {
+          if (dbUser.passwordChangedAt && typeof token.iat === "number") {
+            const changedAt = Math.floor(dbUser.passwordChangedAt.getTime() / 1000);
+            if (token.iat < changedAt) {
+              return { ...token, id: "", role: "USER", plan: "FREE" } as JWT;
+            }
+          }
+
           token = {
             ...token,
             id: dbUser.id,
@@ -120,7 +129,7 @@ export const authOptions: NextAuthOptions = {
             role: dbUser.role ?? "USER",
             plan: dbUser.plan ?? "FREE",
           };
-        } else {
+        } else if (user) {
           token = {
             ...token,
             id: user.id,

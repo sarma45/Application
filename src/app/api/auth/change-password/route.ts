@@ -10,7 +10,9 @@ export const runtime = "nodejs";
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(8).max(128).refine(v => /[A-Z]/.test(v), "Must contain uppercase letter")
+    .refine(v => /[a-z]/.test(v), "Must contain lowercase letter")
+    .refine(v => /[0-9]/.test(v), "Must contain digit"),
 });
 
 export async function POST(req: Request) {
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, passwordChangedAt: new Date() },
     });
 
     logger.info("Password changed", { userId: session.user.id });

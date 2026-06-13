@@ -11,17 +11,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Token is required" }, { status: 400 });
     }
 
+    await prisma.emailVerification.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
     const verification = await prisma.emailVerification.findUnique({ where: { token } });
-    if (!verification) {
-      return NextResponse.json({ error: "Invalid verification token" }, { status: 400 });
-    }
-
-    if (verification.verifiedAt) {
-      return NextResponse.json({ error: "Email already verified" }, { status: 400 });
-    }
-
-    if (new Date() > verification.expiresAt) {
-      return NextResponse.json({ error: "Verification token expired" }, { status: 400 });
+    if (!verification || verification.verifiedAt || new Date() > verification.expiresAt) {
+      return NextResponse.json({ error: "Invalid or expired verification token" }, { status: 400 });
     }
 
     await prisma.$transaction(async (tx) => {

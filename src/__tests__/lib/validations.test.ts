@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  AGENT_CREDITS_PER_RUN_MAX,
+  AGENT_EXECUTION_MESSAGE_MAX_LENGTH,
   registerSchema,
   createAgentSchema,
+  updateAgentSchema,
   executeSchema,
   createReviewSchema,
 } from "@/lib/validations";
@@ -73,6 +76,33 @@ describe("createAgentSchema", () => {
       expect(result.data.creditsPerRun).toBe(0);
     }
   });
+
+  it("should accept the documented maximum credits per run", () => {
+    const result = createAgentSchema.safeParse({
+      name: "Paid Agent",
+      category: "CHAT",
+      pricingType: "PAID",
+      creditsPerRun: AGENT_CREDITS_PER_RUN_MAX,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject credits per run above the documented maximum", () => {
+    const result = createAgentSchema.safeParse({
+      name: "Expensive Agent",
+      category: "CHAT",
+      pricingType: "PAID",
+      creditsPerRun: AGENT_CREDITS_PER_RUN_MAX + 1,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should apply the same credits limit to updates", () => {
+    const result = updateAgentSchema.safeParse({
+      creditsPerRun: AGENT_CREDITS_PER_RUN_MAX + 1,
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("executeSchema", () => {
@@ -86,6 +116,20 @@ describe("executeSchema", () => {
   it("should reject empty message", () => {
     const result = executeSchema.safeParse({
       message: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should accept the documented maximum message length", () => {
+    const result = executeSchema.safeParse({
+      message: "a".repeat(AGENT_EXECUTION_MESSAGE_MAX_LENGTH),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject messages above the documented maximum length", () => {
+    const result = executeSchema.safeParse({
+      message: "a".repeat(AGENT_EXECUTION_MESSAGE_MAX_LENGTH + 1),
     });
     expect(result.success).toBe(false);
   });

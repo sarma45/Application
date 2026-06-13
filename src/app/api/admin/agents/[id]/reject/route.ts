@@ -18,7 +18,7 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const reason = body.reason || "No reason provided";
 
-  const agent = await prisma.agent.findUnique({ where: { id } });
+  const agent = await prisma.agent.findUnique({ where: { id }, select: { status: true } });
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }

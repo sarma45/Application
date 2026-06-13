@@ -11,6 +11,8 @@ const PLAN_PRICES: Record<string, { monthly: number; stripePriceId?: string }> =
   BUSINESS: { monthly: 9900 },
 };
 
+const FREE_CREDITS_ON_SIGNUP = 100;
+
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
@@ -21,6 +23,31 @@ export async function POST(req: Request) {
 
   try {
     const { plan, billingCycle = "monthly" } = await req.json();
+
+    if (plan === "FREE") {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { plan: true },
+      });
+
+      if (currentUser?.plan !== "FREE") {
+        await prisma.wallet.upsert({
+          where: { userId: session.user.id },
+          update: { balance: { increment: FREE_CREDITS_ON_SIGNUP } },
+          create: { userId: session.user.id, balance: FREE_CREDITS_ON_SIGNUP },
+        });
+      }
+
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { plan: "FREE" },
+      });
+      return NextResponse.json({ ok: true, plan: "FREE" });
+    }
+
+    if (plan === "ENTERPRISE") {
+      return NextResponse.json({ error: "Contact sales@aiverse.ai for Enterprise plan" }, { status: 400 });
+    }
 
     if (!PLAN_PRICES[plan]) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });

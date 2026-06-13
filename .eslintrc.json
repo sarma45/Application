@@ -1,4 +1,23 @@
 {
   "extends": "next/core-web-vitals",
-  "rules": {}
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always"],
+    "curly": "off",
+    "no-throw-literal": "error",
+    "prefer-template": "warn",
+    "object-shorthand": ["error", "always"],
+    "no-useless-rename": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
 }

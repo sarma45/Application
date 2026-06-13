@@ -9,6 +9,9 @@ const authPaths = [
   "/api/auth/verify-email",
 ];
 
+const csrfSafeMethods = ["GET", "HEAD", "OPTIONS"];
+const webhookPaths = ["/api/webhooks/stripe", "/api/webhooks/razorpay"];
+
 async function getRedisClient() {
   try {
     const { redis } = await import("@/lib/redis");
@@ -22,6 +25,28 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/")) {
+    const isWebhook = webhookPaths.some(p => pathname.startsWith(p));
+
+    if (!isWebhook && !csrfSafeMethods.includes(request.method)) {
+      const origin = request.headers.get("origin");
+      const referer = request.headers.get("referer");
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const allowedOrigins = [appUrl, appUrl.replace(/\/$/, "")];
+
+      if (origin) {
+        const isAllowed = allowedOrigins.some((a) => origin.startsWith(a));
+        if (!isAllowed) {
+          return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
+        }
+      } else if (referer) {
+        const isAllowed = allowedOrigins.some((a) => referer.startsWith(a));
+        if (!isAllowed) {
+          return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
+        }
+      }
+    }
+
+    // Rate limiting
     const ip = request.headers.get("x-real-ip")
       || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       || "unknown";

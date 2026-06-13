@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { getRoutesForCategory } from "@/lib/ai/gateway";
 import type { AgentCategory } from "@/lib/ai/gateway";
+import { getProviderConfig, streamProvider } from "@/lib/ai/providers";
+import type { CompletionParams, ProviderConfig } from "@/lib/ai/providers";
 import { cacheDel } from "@/lib/redis";
 import { executeSchema } from "@/lib/validations";
 import { checkSafety, sanitizeInput } from "@/lib/ai/safety";
@@ -78,8 +80,6 @@ async function checkFreeTierLimit(userId: string): Promise<{ allowed: boolean; r
 }
 
 async function incrementFreeTierCounter(userId: string): Promise<void> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-  if (!user || user.plan !== "FREE") return;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const key = `free:daily:${userId}:${today.getTime()}`;
@@ -101,23 +101,17 @@ async function creditCreator(agentCreatorId: string, cost: number, executionId: 
   if (share <= 0) return;
   try {
     await prisma.$transaction(async (tx) => {
-      const creatorWallet = await tx.wallet.findUnique({ where: { userId: agentCreatorId } });
-      if (!creatorWallet) {
-        await tx.wallet.create({
-          data: { userId: agentCreatorId, balance: share, lifetimeEarned: share, lifetimeSpent: 0 },
-        });
-      } else {
-        await tx.wallet.update({
-          where: { userId: agentCreatorId },
-          data: { balance: { increment: share }, lifetimeEarned: { increment: share } },
-        });
-      }
+      const updated = await tx.wallet.upsert({
+        where: { userId: agentCreatorId },
+        update: { balance: { increment: share }, lifetimeEarned: { increment: share } },
+        create: { userId: agentCreatorId, balance: share, lifetimeEarned: share, lifetimeSpent: 0 },
+      });
       await tx.transaction.create({
         data: {
           userId: agentCreatorId,
           type: "EARN",
           amount: share,
-          balanceAfter: (creatorWallet?.balance ?? 0) + share,
+          balanceAfter: updated.balance,
           referenceType: "AgentExecution",
           referenceId: executionId,
         },
@@ -174,11 +168,13 @@ export async function POST(
     }
 
     const isTestMode = body._test === true && agent.creatorId === session.user.id;
-    const wallet = isTestMode ? null : await prisma.wallet.findUnique({ where: { userId: session.user.id } });
     const cost = agent.pricingType === "FREE" ? 0 : agent.creditsPerRun;
 
-    if (!isTestMode && cost > 0 && (!wallet || wallet.balance < cost)) {
-      return NextResponse.json({ error: "Insufficient credits. Please top up your wallet." }, { status: 402 });
+    if (!isTestMode && cost > 0) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId: session.user.id }, select: { balance: true } });
+      if (!wallet || wallet.balance < cost) {
+        return NextResponse.json({ error: "Insufficient credits. Please top up your wallet." }, { status: 402 });
+      }
     }
 
     const systemPromptToUse = systemPrompt || agent.systemPrompt || "You are a helpful AI assistant.";
@@ -199,19 +195,6 @@ export async function POST(
     let executionSucceeded = false;
     const startTime = Date.now();
 
-    if (!isTestMode && cost > 0) {
-      await prisma.$transaction(async (tx) => {
-        const w = await tx.wallet.findUnique({ where: { userId: session.user.id } });
-        if (!w || w.balance < cost) {
-          throw new Error("Insufficient credits");
-        }
-        await tx.wallet.update({
-          where: { userId: session.user.id },
-          data: { balance: w.balance - cost, lifetimeSpent: w.lifetimeSpent + cost },
-        });
-      });
-    }
-
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -220,112 +203,25 @@ export async function POST(
           usedProvider = route.provider;
 
           try {
-            if (route.provider === "gemini") {
-              const url = `https://generativelanguage.googleapis.com/v1beta/models/${route.model}:streamGenerateContent?alt=sse`;
+            const config = getProviderConfig(route.provider, route.apiKey, route.model);
+            const messages: CompletionParams["messages"] = [
+              { role: "system", content: systemPromptToUse },
+              ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content })),
+              { role: "user", content: safeMessage },
+            ];
 
-              const messages = [
-                ...history.map((h) => ({
-                  role: h.role === "assistant" ? "model" : "user",
-                  parts: [{ text: h.content }],
-                })),
-                { role: "user", parts: [{ text: [systemPromptToUse, safeMessage].filter(Boolean).join("\n\n") }] },
-              ];
-
-              const payload = { contents: messages, generationConfig: { temperature: 0.7, maxOutputTokens: 2048 } };
-
-              const res = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "x-goog-api-key": route.apiKey },
-                body: JSON.stringify(payload),
-              });
-
-              if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Gemini error ${res.status}: ${errText}`);
+            const { ok: succeeded } = await streamProvider(
+              config,
+              { messages, maxTokens: 2048, temperature: 0.7 },
+              (text: string) => {
+                fullResponse += text;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+                return true;
               }
+            );
 
-              const reader = res.body?.getReader();
-              if (!reader) throw new Error("No response body from Gemini");
-
-              const decoder = new TextDecoder();
-              let buffer = "";
-
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop() || "";
-
-                for (const line of lines) {
-                  if (line.startsWith("data: ")) {
-                    const data = line.slice(6).trim();
-                    if (!data || data === "[DONE]") continue;
-                    try {
-                      const parsed = JSON.parse(data);
-                      const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                      if (text) {
-                        fullResponse += text;
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-                      }
-                    } catch {
-                      // skip
-                    }
-                  }
-                }
-              }
-            } else {
-              const url = "https://openrouter.ai/api/v1/chat/completions";
-
-              const messages = [
-                { role: "system", content: systemPromptToUse },
-                ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content })),
-                { role: "user", content: safeMessage },
-              ];
-
-              const res = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${route.apiKey}` },
-                body: JSON.stringify({ model: route.model, messages, stream: true, max_tokens: 2048 }),
-              });
-
-              if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`OpenRouter error ${res.status}: ${errText}`);
-              }
-
-              const reader = res.body?.getReader();
-              if (!reader) throw new Error("No response body from OpenRouter");
-
-              const decoder = new TextDecoder();
-              let buffer = "";
-
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop() || "";
-
-                for (const line of lines) {
-                  if (line.startsWith("data: ")) {
-                    const data = line.slice(6).trim();
-                    if (!data || data === "[DONE]") continue;
-                    try {
-                      const parsed = JSON.parse(data);
-                      const text = parsed?.choices?.[0]?.delta?.content;
-                      if (text) {
-                        fullResponse += text;
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-                      }
-                    } catch {
-                      // skip
-                    }
-                  }
-                }
-              }
+            if (!succeeded) {
+              throw new Error("Empty response from provider");
             }
 
             executionSucceeded = true;
@@ -337,23 +233,34 @@ export async function POST(
           }
         }
 
+        if (!fullResponse.trim()) {
+          executionSucceeded = false;
+        }
+
         if (executionSucceeded && !isTestMode) {
           const durationMs = Date.now() - startTime;
           const executionId = `${session.user.id}:${agent.id}:${Date.now()}`;
 
           if (cost > 0) {
-            const w = await prisma.wallet.findUnique({ where: { userId: session.user.id } });
-            if (w) {
-              await prisma.transaction.create({
-                data: {
-                  userId: session.user.id,
-                  type: "SPEND",
-                  amount: cost,
-                  balanceAfter: w.balance,
-                  referenceType: "AgentExecution",
-                  referenceId: executionId,
-                },
+            try {
+              await prisma.$transaction(async (tx) => {
+                const updated = await tx.wallet.update({
+                  where: { userId: session.user.id, balance: { gte: cost } },
+                  data: { balance: { decrement: cost }, lifetimeSpent: { increment: cost } },
+                });
+                await tx.transaction.create({
+                  data: {
+                    userId: session.user.id,
+                    type: "SPEND",
+                    amount: cost,
+                    balanceAfter: updated.balance,
+                    referenceType: "AgentExecution",
+                    referenceId: executionId,
+                  },
+                });
               });
+            } catch (deductErr) {
+              logger.error("credit deduction failed after execution", { userId: session.user.id, cost, error: deductErr });
             }
           }
 
@@ -380,6 +287,10 @@ export async function POST(
 
           await cacheDel(`agent:${slug}`);
           if (cost > 0) await cacheDel(`wallet:${session.user.id}`);
+        }
+
+        if (!executionSucceeded) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "All AI providers failed. No credits were charged." })}\n\n`));
         }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ sessionId, done: true })}\n\n`));

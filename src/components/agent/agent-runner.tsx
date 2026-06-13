@@ -119,15 +119,14 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
     const text = input.trim();
     if ((!text && !attachedFile) || running) return;
 
-    setInput("");
     setError("");
-    setRunning(true);
 
     const userContent = attachedFile
       ? `${text ? text + "\n\n" : ""}[File: ${attachedFile.name} (${(attachedFile.size / 1024).toFixed(1)} KB)]`
       : text;
 
     setMessages((prev) => [...prev, { role: "user", content: userContent }, { role: "assistant", content: "" }]);
+    setRunning(true);
 
     try {
       const res = await fetch(`/api/agents/${slug}/execute`, {
@@ -148,11 +147,14 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
         throw new Error(data.error || `Request failed (${res.status})`);
       }
 
+      setInput("");
+
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response stream");
 
       const decoder = new TextDecoder();
       let assistantMessage = "";
+      let streamStarted = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -172,6 +174,7 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
                 setSessionId(parsed.sessionId);
               }
               if (parsed.text) {
+                streamStarted = true;
                 assistantMessage += parsed.text;
                 setMessages((prev) => {
                   const next = [...prev];
@@ -189,7 +192,7 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
         }
       }
 
-      if (!assistantMessage) {
+      if (!assistantMessage && !streamStarted) {
         setMessages((prev) => prev.slice(0, -1));
         setError("No response received");
       }
@@ -273,12 +276,19 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
           </div>
         )}
         <div className="flex gap-2">
-          <input
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
             placeholder={isDataAgent ? "Ask about your data..." : "Type your message..."}
-            className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none min-h-[42px] max-h-[120px]"
             disabled={running}
+            rows={1}
           />
           <Button type="submit" loading={running} disabled={!input.trim() && !attachedFile}>
             Send
