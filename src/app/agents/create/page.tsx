@@ -4,7 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AGENT_CREDITS_PER_RUN_MAX } from "@/lib/limits";
 
 const categories = ["CHAT", "CODE", "DATA", "WORKFLOW"];

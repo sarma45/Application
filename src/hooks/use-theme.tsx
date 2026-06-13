@@ -7,7 +7,7 @@ type Theme = "dark" | "light";
 interface ThemeCtx {
   theme: Theme;
   toggle: () => void;
-  setTheme: (t: Theme) => void;
+  setTheme: (_t: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeCtx>({ theme: "dark", toggle: () => {}, setTheme: () => {} });

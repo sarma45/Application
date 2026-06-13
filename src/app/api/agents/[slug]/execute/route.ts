@@ -6,7 +6,7 @@ import { redis } from "@/lib/redis";
 import { getRoutesForCategory } from "@/lib/ai/gateway";
 import type { AgentCategory } from "@/lib/ai/gateway";
 import { getProviderConfig, streamProvider } from "@/lib/ai/providers";
-import type { CompletionParams, ProviderConfig } from "@/lib/ai/providers";
+import type { CompletionParams } from "@/lib/ai/providers";
 import { cacheDel } from "@/lib/redis";
 import { executeSchema } from "@/lib/validations";
 import { checkSafety, sanitizeInput } from "@/lib/ai/safety";

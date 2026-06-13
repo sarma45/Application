@@ -49,7 +49,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   useEffect(() => {
     onClose();
-  }, [pathname]);
+  }, [pathname, onClose]);
 
   return (
     <>
@@ -82,7 +82,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
         <nav className="p-4 space-y-1">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
@@ -123,7 +123,7 @@ export function Navbar({ session }: { session: any }) {
           </Link>
           <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (
                 <Link
                   key={link.href}

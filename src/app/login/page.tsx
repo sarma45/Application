@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader } from "@/components/ui/card";
 
+/* eslint-disable no-unused-vars */
 declare global {
   interface Window {
+  /* eslint-enable no-unused-vars */
     turnstile?: {
-      render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
-      getResponse: (widgetId: string) => string;
-      reset: (widgetId: string) => void;
+      render: (_container: string | HTMLElement, _options: Record<string, unknown>) => string;
+      getResponse: (_widgetId: string) => string;
+      reset: (_widgetId: string) => void;
     };
   }
 }

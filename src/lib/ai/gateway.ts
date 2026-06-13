@@ -1,4 +1,4 @@
-import { getRoutesForCategory, type AgentCategory, type ProviderRoute } from "./routing";
+import { getRoutesForCategory, type AgentCategory } from "./routing";
 import { completeNonStreaming, getProviderConfig, type CompletionParams } from "./providers";
 export { getRoutesForCategory } from "./routing";
 export type { AgentCategory, ProviderRoute } from "./routing";

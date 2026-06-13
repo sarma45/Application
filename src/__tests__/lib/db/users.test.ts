@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -32,7 +32,6 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import {
   findUserByEmail,
   findUserById,

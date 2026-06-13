@@ -12,8 +12,8 @@ interface Toast {
 
 interface ToastCtx {
   toasts: Toast[];
-  toast: (message: string, variant?: ToastVariant) => void;
-  dismiss: (id: string) => void;
+  toast: (_message: string, _variant?: ToastVariant) => void;
+  dismiss: (_id: string) => void;
 }
 
 const ToastContext = createContext<ToastCtx>({ toasts: [], toast: () => {}, dismiss: () => {} });

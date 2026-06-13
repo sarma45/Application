@@ -1,5 +1,3 @@
-import { CardSkeleton } from "@/components/ui/skeleton";
-
 export default function PricingLoading() {
   return (
     <div className="container-main py-16 space-y-8 animate-pulse">

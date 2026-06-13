@@ -201,7 +201,7 @@ export function getProviderForModel(provider: ProviderName): "openai-compat" | "
 
 async function parseSSEStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-  onChunk: (text: string) => void
+  onChunk: (_text: string) => void
 ): Promise<void> {
   const decoder = new TextDecoder();
   let buffer = "";
@@ -231,7 +231,7 @@ async function parseSSEStream(
 async function streamGemini(
   config: ProviderConfig,
   params: CompletionParams,
-  onChunk: (text: string) => boolean
+  onChunk: (_text: string) => boolean
 ): Promise<{ fullResponse: string; ok: boolean }> {
   const url = `${config.baseUrl}/models/${config.model}:streamGenerateContent?alt=sse`;
   const systemMsg = params.messages.find(m => m.role === "system");
@@ -285,7 +285,7 @@ async function streamGemini(
 async function streamOpenAICompatible(
   config: ProviderConfig,
   params: CompletionParams,
-  onChunk: (text: string) => boolean
+  onChunk: (_text: string) => boolean
 ): Promise<{ fullResponse: string; ok: boolean }> {
   const url = `${config.baseUrl}/chat/completions`;
 
@@ -334,7 +334,7 @@ async function streamOpenAICompatible(
 export async function streamProvider(
   config: ProviderConfig,
   params: CompletionParams,
-  onChunk: (text: string) => boolean
+  onChunk: (_text: string) => boolean
 ): Promise<{ fullResponse: string; ok: boolean }> {
   const handler = getProviderForModel(config.provider);
   switch (handler) {

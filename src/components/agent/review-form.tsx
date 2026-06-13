@@ -9,7 +9,7 @@ interface ReviewFormProps {
   onSubmitted?: () => void;
 }
 
-export function ReviewForm({ agentId, slug, onSubmitted }: ReviewFormProps) {
+export function ReviewForm({ agentId: _agentId, slug, onSubmitted }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [title, setTitle] = useState("");

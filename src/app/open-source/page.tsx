@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 
 const models = [
   {

@@ -1,5 +1,3 @@
-import { StatsCardSkeleton } from "@/components/ui/skeleton";
-
 export default function WalletLoading() {
   return (
     <div className="container-main py-8 space-y-6 animate-pulse">

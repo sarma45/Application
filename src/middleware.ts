@@ -65,10 +65,9 @@ export async function middleware(request: NextRequest) {
         const results = await multi.exec();
         if (results) {
           const count = (results[0]?.[1] as number) ?? 1;
-          let ttl = (results[1]?.[1] as number) ?? windowSeconds;
+          const _ttl = (results[1]?.[1] as number) ?? windowSeconds;
           if (count === 1) {
             await redis.expire(key, windowSeconds);
-            ttl = windowSeconds;
           }
           if (count > maxReqs) {
             return NextResponse.json(

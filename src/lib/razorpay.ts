@@ -2,7 +2,7 @@ import { logger } from "./logger";
 
 export interface RazorpayClient {
   orders: {
-    create(params: { amount: number; currency: string; receipt: string }): Promise<{
+    create(_params: { amount: number; currency: string; receipt: string }): Promise<{
       id: string;
       amount: number;
       currency: string;

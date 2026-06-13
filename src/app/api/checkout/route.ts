@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { stripe, CREDIT_PACKAGES, getPricePerCredit } from "@/lib/stripe";
-import { checkoutSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 

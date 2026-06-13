@@ -97,11 +97,11 @@ function output(level: LogLevel, entry: LogEntry): void {
 }
 
 export interface Logger {
-  debug(message: string, meta?: Record<string, unknown>): void;
-  info(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  error(message: string, meta?: Record<string, unknown>): void;
-  child(defaultMeta: Record<string, unknown>): Logger;
+  debug(_message: string, _meta?: Record<string, unknown>): void;
+  info(_message: string, _meta?: Record<string, unknown>): void;
+  warn(_message: string, _meta?: Record<string, unknown>): void;
+  error(_message: string, _meta?: Record<string, unknown>): void;
+  child(_defaultMeta: Record<string, unknown>): Logger;
 }
 
 function createLogger(defaultMeta?: Record<string, unknown>): Logger {

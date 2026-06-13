@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, FormEvent, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 function ResetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 

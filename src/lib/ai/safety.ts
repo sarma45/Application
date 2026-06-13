@@ -132,7 +132,7 @@ export async function getTrustScore(userId: string): Promise<TrustScore> {
   return getMemoryStore(userId);
 }
 
-export async function recordViolation(userId: string, reason: string): Promise<TrustScore> {
+export async function recordViolation(userId: string, _reason: string): Promise<TrustScore> {
   const trust = redis && redis.status === "ready"
     ? await getTrustScore(userId)
     : getMemoryStore(userId);

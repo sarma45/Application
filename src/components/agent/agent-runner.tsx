@@ -122,7 +122,7 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
     setError("");
 
     const userContent = attachedFile
-      ? `${text ? text + "\n\n" : ""}[File: ${attachedFile.name} (${(attachedFile.size / 1024).toFixed(1)} KB)]`
+      ? `${text ? `${text}\n\n` : ""}[File: ${attachedFile.name} (${(attachedFile.size / 1024).toFixed(1)} KB)]`
       : text;
 
     setMessages((prev) => [...prev, { role: "user", content: userContent }, { role: "assistant", content: "" }]);

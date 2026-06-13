@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     await prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.upsert({
+      await tx.wallet.upsert({
         where: { userId },
         update: {},
         create: { userId, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0 },

@@ -20,8 +20,10 @@ export async function requireRole(...roles: string[]) {
   return session;
 }
 
+/* eslint-disable no-unused-vars */
 declare module "next-auth" {
   interface Session {
+  /* eslint-enable no-unused-vars */
     user: {
       id: string;
       email: string;
@@ -31,15 +33,19 @@ declare module "next-auth" {
       plan: string;
     };
   }
+  /* eslint-disable no-unused-vars */
   interface User {
+  /* eslint-enable no-unused-vars */
     username?: string;
     role: string;
     plan: string;
   }
 }
 
+/* eslint-disable no-unused-vars */
 declare module "next-auth/jwt" {
   interface JWT {
+  /* eslint-enable no-unused-vars */
     id: string;
     username?: string | null;
     role: string;

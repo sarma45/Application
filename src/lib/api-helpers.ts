@@ -69,10 +69,10 @@ interface HandlerContext {
   params?: Record<string, string>;
 }
 
-export type ApiHandler = (ctx: HandlerContext) => Promise<NextResponse>;
+export type ApiHandler = (_ctx: HandlerContext) => Promise<NextResponse>;
 
 export function withErrorHandler(handler: ApiHandler): ApiHandler {
-  return async (ctx) => {
+  return async (ctx: HandlerContext) => {
     try {
       return await handler(ctx);
     } catch (error) {
@@ -88,7 +88,7 @@ export function withErrorHandler(handler: ApiHandler): ApiHandler {
 }
 
 export function withRateLimit(zone: "auth" | "api" | "execute" = "api", handler: ApiHandler): ApiHandler {
-  return async (ctx) => {
+  return async (ctx: HandlerContext) => {
     const rl = await rateLimit(ctx.req, zone);
     if (!rl.allowed) {
       return tooMany("Too many requests. Please slow down.");

@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCredits, formatDate } from "@/lib/utils";
 import Link from "next/link";

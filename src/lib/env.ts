@@ -52,7 +52,7 @@ export function warnMissingServices() {
     warnings.push("No payment provider configured (STRIPE_SECRET or RAZORPAY_KEY_ID). Credit purchases will be unavailable.");
   }
   if (warnings.length > 0 && process.env.NODE_ENV !== "production") {
-    console.warn("[AIVerse] Service warnings:\n  - " + warnings.join("\n  - "));
+    console.warn(`[AIVerse] Service warnings:\n  - ${warnings.join("\n  - ")}`);
   }
 }
 
