@@ -8,8 +8,45 @@ env:
   PNPM_VERSION: "9"
 
 jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: aiverse_test
+          POSTGRES_USER: aiverse
+          POSTGRES_PASSWORD: aiverse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      - run: pnpm prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://aiverse:aiverse@localhost:5432/aiverse_test
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm vitest run
+        env:
+          DATABASE_URL: postgresql://aiverse:aiverse@localhost:5432/aiverse_test
+
   deploy:
     runs-on: ubuntu-latest
+    needs: ci
     environment: production
     steps:
       - uses: actions/checkout@v4
