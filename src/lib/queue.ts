@@ -36,9 +36,31 @@ export async function enqueueExecutionLog(job: ExecutionLogJob) {
   });
 }
 
+let payoutQueue: Queue | null = null;
+
+function getPayoutQueue(): Queue | null {
+  if (!redis) return null;
+  if (!payoutQueue) {
+    payoutQueue = new Queue("payout-processing", {
+      connection: redis as any,
+    });
+  }
+  return payoutQueue;
+}
+
+export async function enqueuePayoutBatch() {
+  const queue = getPayoutQueue();
+  if (!queue) return;
+  await queue.add("process-payouts", {}, { attempts: 3, backoff: { type: "exponential", delay: 2000 } });
+}
+
 export async function closeQueue() {
   if (executionQueue) {
     await executionQueue.close();
     executionQueue = null;
+  }
+  if (payoutQueue) {
+    await payoutQueue.close();
+    payoutQueue = null;
   }
 }

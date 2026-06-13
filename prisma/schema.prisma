@@ -40,6 +40,11 @@ model User {
   emailVerifications EmailVerification[]
   favorites       AgentFavorite[]
   files           File[]
+  apiKeys         ApiKey[]
+  notifications   Notification[]
+  webhooks        Webhook[]
+  ownedOrganizations Organization[] @relation("OrgOwner")
+  organizationMemberships OrganizationMember[]
 
   @@index([role])
 }
@@ -342,6 +347,126 @@ model File {
 
   @@index([userId])
   @@index([storageKey])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  key       String   @unique
+  scopes    String[]
+  lastUsedAt DateTime?
+  expiresAt DateTime?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([key])
+  @@index([userId, isActive])
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  ownerId     String
+  plan        String   @default("BUSINESS")
+  maxMembers  Int      @default(10)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User                 @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members OrganizationMember[]
+  invites  OrganizationInvite[]
+
+  @@index([slug])
+  @@index([ownerId])
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String   @default("MEMBER")
+  joinedAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model OrganizationInvite {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  role           String   @default("MEMBER")
+  token          String   @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  link      String?
+  read      Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  events    String[]
+  secret    String
+  isActive  Boolean  @default(true)
+  lastTriggeredAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isActive])
+}
+
+model AgentTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  category      String
+  systemPrompt  String   @db.Text
+  toolsConfig   Json?
+  modelProvider String   @default("gemini")
+  tags          String[]
+  isFeatured    Boolean  @default(false)
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([category])
+  @@index([isFeatured])
+  @@index([usageCount])
 }
 
 model AnalyticsEvent {
