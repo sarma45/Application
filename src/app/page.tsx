@@ -34,7 +34,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-white/5 min-h-[90vh] flex items-center">
+      <section className="relative overflow-hidden border-b border-light min-h-[90vh] flex items-center">
         <div className="absolute inset-0 bg-gradient-radial from-purple-900/10 via-transparent to-transparent" />
         <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
           <svg className="absolute -top-40 -right-40 w-[600px] h-[600px] opacity-10 animate-float" viewBox="0 0 150 100">
@@ -62,13 +62,13 @@ export default async function HomePage() {
               <span className="mr-1.5 inline-block w-1.5 h-1.5 rounded-full bg-purple-400 neural-pulse" />
               AI Agent Marketplace
             </Badge>
-            <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-white font-[family-name:var(--font-neural)] leading-tight">
+            <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-theme leading-tight">
               Discover, deploy, and<br />
               <NeuralText as="span" className="inline-block mt-2">
                 monetize AI agents
               </NeuralText>
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto">
+            <p className="mt-6 text-lg md:text-xl text-secondary max-w-2xl mx-auto">
               The unified hub where creators publish agents, developers build tools,
               and businesses deploy governed AI workflows.
             </p>
@@ -96,18 +96,18 @@ export default async function HomePage() {
 
       <section className="container-main py-20 scroll-reveal">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white font-[family-name:var(--font-neural)]">Agent Categories</h2>
-          <p className="mt-2 text-zinc-400">Find the right agent for any task</p>
+          <h2 className="text-3xl font-bold text-theme">Agent Categories</h2>
+          <p className="mt-2 text-secondary">Find the right agent for any task</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {categories.map((cat, i) => (
             <Link key={cat.slug} href={`/agents?category=${cat.slug}`} style={{ animationDelay: `${i * 0.1}s` }}>
               <Card className="p-6 group cursor-pointer">
                 <span className="text-3xl block transition-transform duration-300 group-hover:scale-110 group-hover:animate-float">{cat.icon}</span>
-                <h3 className="mt-4 font-semibold text-zinc-100 group-hover:neural-text transition-all duration-300 font-[family-name:var(--font-neural)]">
+                <h3 className="mt-4 font-semibold text-theme group-hover:neural-text transition-all duration-300">
                   {cat.label}
                 </h3>
-                <p className="mt-1 text-sm text-zinc-500">{cat.desc}</p>
+                <p className="mt-1 text-sm text-secondary">{cat.desc}</p>
               </Card>
             </Link>
           ))}
@@ -118,8 +118,8 @@ export default async function HomePage() {
         <section className="container-main pb-20 scroll-reveal">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Featured Agents</h2>
-              <p className="text-sm text-zinc-500">Most popular agents on AIVerse</p>
+              <h2 className="text-2xl font-bold text-theme">Featured Agents</h2>
+              <p className="text-sm text-secondary">Most popular agents on AIVerse</p>
             </div>
             <Link href="/agents">
               <Button variant="ghost" size="sm">
@@ -138,13 +138,13 @@ export default async function HomePage() {
                     <Badge variant={agent.category === "CHAT" ? "purple" : agent.category === "CODE" ? "success" : agent.category === "DATA" ? "warning" : "default"}>
                       {agent.category}
                     </Badge>
-                    <span className="text-xs text-zinc-500 font-mono">{agent.totalRuns} runs</span>
+                    <span className="text-xs text-secondary font-mono">{agent.totalRuns} runs</span>
                   </div>
-                  <h3 className="font-semibold text-zinc-100 group-hover:neural-text transition-all duration-300 font-[family-name:var(--font-neural)]">
+                  <h3 className="font-semibold text-theme group-hover:neural-text transition-all duration-300">
                     {agent.name}
                   </h3>
-                  <p className="mt-1 text-sm text-zinc-500 line-clamp-2">{agent.systemPrompt?.slice(0, 100)}</p>
-                  <div className="mt-4 flex items-center justify-between text-xs text-zinc-600">
+                  <p className="mt-1 text-sm text-secondary line-clamp-2">{agent.systemPrompt?.slice(0, 100)}</p>
+                  <div className="mt-4 flex items-center justify-between text-xs text-muted">
                     <span>by {agent.creator.username || "anonymous"}</span>
                     {agent.pricingType === "FREE" ? (
                       <span className="text-emerald-400">Free</span>
@@ -159,10 +159,10 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="border-t border-white/5 py-20 scroll-reveal">
+      <section className="border-t border-light py-20 scroll-reveal">
         <div className="container-main text-center">
-          <h2 className="text-3xl font-bold text-white font-[family-name:var(--font-neural)]">Built for everyone</h2>
-          <p className="mt-2 text-zinc-400 mb-12">From solo creators to enterprise teams</p>
+          <h2 className="text-3xl font-bold text-theme">Built for everyone</h2>
+          <p className="mt-2 text-secondary mb-12">From solo creators to enterprise teams</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { title: "For Creators", desc: "Publish agents, earn 80% revenue share, and grow your audience with zero platform fees for 6 months." },
@@ -170,8 +170,8 @@ export default async function HomePage() {
               { title: "For Businesses", desc: "Deploy governed AI workflows with team workspaces, SSO, audit logs, and custom SLAs." },
             ].map((item, i) => (
               <Card key={item.title} className="p-6" style={{ animationDelay: `${i * 0.15}s` }}>
-                <h3 className="text-lg font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">{item.title}</h3>
-                <p className="text-sm text-zinc-500">{item.desc}</p>
+                <h3 className="text-lg font-semibold text-theme mb-2">{item.title}</h3>
+                <p className="text-sm text-secondary">{item.desc}</p>
               </Card>
             ))}
           </div>

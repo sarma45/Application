@@ -1,13 +1,27 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
+import dynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { getSession } from "@/lib/auth";
 import { ThemeProvider } from "@/hooks/use-theme";
-import { NeuralBackground } from "@/components/effects/neural-background";
-import { NeuralParticles } from "@/components/effects/neural-particles";
-import { PageTransition } from "@/components/effects/page-transition";
+import { ToastProvider } from "@/hooks/use-toast";
 import "./globals.css";
+
+const NeuralBackground = dynamic(
+  () => import("@/components/effects/neural-background").then((m) => m.NeuralBackground),
+  { ssr: false }
+);
+
+const NeuralParticles = dynamic(
+  () => import("@/components/effects/neural-particles").then((m) => m.NeuralParticles),
+  { ssr: false }
+);
+
+const PageTransition = dynamic(
+  () => import("@/components/effects/page-transition").then((m) => m.PageTransition),
+  { ssr: false }
+);
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -50,17 +64,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${spaceGrotesk.variable} min-h-screen bg-zinc-950 antialiased`}>
+      <body className={`${spaceGrotesk.variable} min-h-screen bg-theme antialiased`}>
         <ThemeProvider>
-          <NeuralBackground />
-          <NeuralParticles />
-          <div className="relative z-10">
-            <Navbar session={session} />
-            <main className="min-h-[calc(100vh-4rem)]">
-              <PageTransition>{children}</PageTransition>
-            </main>
-            <Footer />
-          </div>
+          <ToastProvider>
+            <NeuralBackground />
+            <NeuralParticles />
+            <a href="#main-content" className="skip-link">
+              Skip to content
+            </a>
+            <div className="relative z-10">
+              <Navbar session={session} />
+              <main id="main-content" className="min-h-[calc(100vh-4rem)]">
+                <PageTransition>{children}</PageTransition>
+              </main>
+              <Footer />
+            </div>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

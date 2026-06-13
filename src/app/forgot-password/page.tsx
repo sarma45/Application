@@ -49,8 +49,8 @@ export default function ForgotPasswordPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Check your email</h1>
-            <p className="text-sm text-zinc-500 mb-4">
+            <h1 className="text-xl font-semibold text-theme mb-2">Check your email</h1>
+            <p className="text-sm text-secondary mb-4">
               If an account exists with that email, we&apos;ve sent a password reset link.
             </p>
             <Link href="/login">
@@ -67,8 +67,8 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="text-center">
-            <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Reset your password</h1>
-            <p className="mt-1 text-sm text-zinc-500">Enter your email and we&apos;ll send you a reset link</p>
+            <h1 className="text-xl font-semibold text-theme">Reset your password</h1>
+            <p className="mt-1 text-sm text-secondary">Enter your email and we&apos;ll send you a reset link</p>
           </div>
         </CardHeader>
         <CardContent>
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
               Send reset link
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-zinc-500">
+            <p className="mt-4 text-center text-sm text-secondary">
             Remember your password?{" "}
             <Link href="/login" className="text-purple-400 hover:text-stream-400 transition-colors">
               Sign in

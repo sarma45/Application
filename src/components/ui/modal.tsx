@@ -43,7 +43,9 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     if (open) {
       previousActiveElement.current = document.activeElement;
       document.addEventListener("keydown", handleKeyDown);
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
       requestAnimationFrame(() => {
         const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -54,6 +56,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
       if (previousActiveElement.current instanceof HTMLElement) {
         previousActiveElement.current.focus();
       }
@@ -80,13 +83,13 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         className={`relative z-50 w-full max-w-lg glass glass-strong glass-border-gradient ${className ?? ""}`}
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-0">
-          <h2 id="modal-title" className="text-lg font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">
+          <h2 id="modal-title" className="text-lg font-semibold text-theme font-[family-name:var(--font-neural)]">
             {title}
           </h2>
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="text-secondary hover:text-theme transition-colors"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

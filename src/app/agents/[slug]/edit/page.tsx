@@ -100,12 +100,12 @@ export default function EditAgentPage() {
     setSaving(false);
   }
 
-  if (loading) return <div className="container-main py-8"><p className="text-zinc-500">Loading...</p></div>;
+  if (loading) return <div className="container-main py-8"><p className="text-secondary">Loading...</p></div>;
   if (!agent) return <div className="container-main py-8"><p className="text-red-400">Agent not found</p></div>;
 
   return (
     <div className="container-main py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-white mb-8">Edit Agent</h1>
+      <h1 className="text-2xl font-bold text-theme mb-8">Edit Agent</h1>
 
       <Card>
         <CardContent className="p-6">
@@ -119,12 +119,12 @@ export default function EditAgentPage() {
             />
 
             <div>
-              <label htmlFor="category" className="text-sm font-medium text-zinc-300 block mb-1.5">Category</label>
+              <label htmlFor="category" className="text-sm font-medium text-theme block mb-1.5">Category</label>
               <select
                 id="category"
                 name="category"
                 defaultValue={agent.category}
-                className="flex h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex h-10 w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               >
                 {categories.map((cat) => (
@@ -134,24 +134,24 @@ export default function EditAgentPage() {
             </div>
 
             <div>
-              <label htmlFor="systemPrompt" className="text-sm font-medium text-zinc-300 block mb-1.5">System Prompt</label>
+              <label htmlFor="systemPrompt" className="text-sm font-medium text-theme block mb-1.5">System Prompt</label>
               <textarea
                 id="systemPrompt"
                 name="systemPrompt"
                 rows={6}
                 defaultValue={agent.systemPrompt || ""}
-                className="flex w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="You are an AI agent that..."
               />
             </div>
 
             <div>
-              <label htmlFor="pricingType" className="text-sm font-medium text-zinc-300 block mb-1.5">Pricing</label>
+              <label htmlFor="pricingType" className="text-sm font-medium text-theme block mb-1.5">Pricing</label>
               <select
                 id="pricingType"
                 name="pricingType"
                 defaultValue={agent.pricingType}
-                className="flex h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex h-10 w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="FREE">Free</option>
                 <option value="PAID">Paid (credits)</option>
@@ -168,8 +168,8 @@ export default function EditAgentPage() {
               defaultValue={agent.creditsPerRun}
             />
 
-            <div className="text-xs text-zinc-600">
-              Status: <span className="text-zinc-400">{agent.status}</span>
+            <div className="text-xs text-muted">
+              Status: <span className="text-secondary">{agent.status}</span>
             </div>
 
             {error && <p className="text-sm text-red-400">{error}</p>}
@@ -187,7 +187,7 @@ export default function EditAgentPage() {
           <h2 className="font-semibold text-red-400">Danger Zone</h2>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-zinc-500 mb-4">
+          <p className="text-sm text-secondary mb-4">
             Archiving will prevent users from running this agent. You can unarchive it later.
           </p>
           <Button variant="destructive" onClick={handleArchive} loading={saving}>

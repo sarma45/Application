@@ -25,13 +25,13 @@ export default async function DashboardPage() {
     <div className="container-main py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Dashboard</h1>
-          <p className="text-sm text-zinc-500">Welcome back, {session.user.email}</p>
+          <h1 className="text-2xl font-bold text-theme">Dashboard</h1>
+          <p className="text-sm text-secondary">Welcome back, {session.user.email}</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="purple">{session.user.plan}</Badge>
           {wallet && (
-            <div className="glass rounded-lg px-3 py-1.5 flex items-center gap-1.5 text-sm text-zinc-300">
+            <div className="glass rounded-lg px-3 py-1.5 flex items-center gap-1.5 text-sm text-theme">
               <svg className="h-4 w-4 text-stream-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         ].map((stat) => (
           <Card key={stat.label} className="p-5">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-zinc-500">{stat.label}</p>
+              <p className="text-sm text-secondary">{stat.label}</p>
               <div className="w-8 h-8 rounded-full glass flex items-center justify-center">
                 {stat.icon === "run" && (
                   <svg className="w-4 h-4 text-stream-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
                 )}
               </div>
             </div>
-            <p className="text-2xl font-bold text-white font-mono">{stat.value}</p>
+            <p className="text-2xl font-bold text-theme font-mono">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white font-[family-name:var(--font-neural)]">My Agents</h2>
+            <h2 className="text-lg font-semibold text-theme">My Agents</h2>
             <Link href="/agents/create">
               <Button variant="secondary" size="sm">New Agent</Button>
             </Link>
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
           {agents.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
-                <p className="text-sm text-zinc-500">No agents yet</p>
+                <p className="text-sm text-secondary">No agents yet</p>
                 <Link href="/agents/create">
                   <Button variant="primary" size="sm" className="mt-3">Create your first agent</Button>
                 </Link>
@@ -96,8 +96,8 @@ export default async function DashboardPage() {
                 <Link key={agent.id} href={`/agents/${agent.slug}`}>
                   <Card className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-zinc-200">{agent.name}</p>
-                      <p className="text-xs text-zinc-500">{agent.totalRuns} runs</p>
+                      <p className="text-sm font-medium text-theme">{agent.name}</p>
+                      <p className="text-xs text-secondary">{agent.totalRuns} runs</p>
                     </div>
                     <Badge variant={agent.status === "APPROVED" ? "success" : agent.status === "DRAFT" ? "warning" : agent.status === "PENDING" ? "warning" : "default"}>
                       {agent.status}
@@ -110,11 +110,11 @@ export default async function DashboardPage() {
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold text-white mb-4 font-[family-name:var(--font-neural)]">Recent Activity</h2>
+          <h2 className="text-lg font-semibold text-theme mb-4">Recent Activity</h2>
           {recentExecutions.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
-                <p className="text-sm text-zinc-500">No activity yet. Try running an agent!</p>
+                <p className="text-sm text-secondary">No activity yet. Try running an agent!</p>
                 <Link href="/agents">
                   <Button variant="primary" size="sm" className="mt-3">Browse agents</Button>
                 </Link>
@@ -135,12 +135,12 @@ export default async function DashboardPage() {
                     </div>
                     <div className="flex-1 flex items-center justify-between">
                       <div>
-                        <Link href={`/agents/${exec.agent.slug}`} className="text-sm font-medium text-zinc-200 hover:text-stream-400 transition-colors">
+                        <Link href={`/agents/${exec.agent.slug}`} className="text-sm font-medium text-theme hover:text-stream-400 transition-colors">
                           {exec.agent.name}
                         </Link>
-                        <p className="text-xs text-zinc-500">{formatDate(exec.createdAt)}</p>
+                        <p className="text-xs text-secondary">{formatDate(exec.createdAt)}</p>
                       </div>
-                      <div className="text-right text-xs text-zinc-500">
+                      <div className="text-right text-xs text-secondary">
                         <p>{exec.creditsUsed} credits</p>
                         <Badge variant={exec.status === "COMPLETED" ? "success" : "danger"}>{exec.status}</Badge>
                       </div>

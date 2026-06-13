@@ -64,10 +64,10 @@ export default function RegisterPage() {
         <CardHeader>
           <div className="text-center">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-stream-500 neural-glow">
-              <span className="text-lg font-bold text-white">A</span>
+              <span className="text-lg font-bold text-theme">A</span>
             </div>
-            <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Create account</h1>
-            <p className="mt-1 text-sm text-zinc-500">Join the AI agent marketplace</p>
+            <h1 className="text-xl font-semibold text-theme">Create account</h1>
+            <p className="mt-1 text-sm text-secondary">Join the AI agent marketplace</p>
           </div>
         </CardHeader>
         <div className="p-6 pt-0">
@@ -80,7 +80,7 @@ export default function RegisterPage() {
               Create account
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-zinc-500">
+          <p className="mt-4 text-center text-sm text-secondary">
             Already have an account?{" "}
             <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
               Sign in

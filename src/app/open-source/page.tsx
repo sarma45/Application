@@ -155,17 +155,17 @@ export default function OpenSourceModelsPage() {
     <div className="container-main py-8">
       <div className="text-center mb-12">
         <Badge variant="cyan" className="mb-4">Open Source</Badge>
-        <h1 className="text-4xl font-bold text-white font-[family-name:var(--font-neural)] mb-4">
+        <h1 className="text-4xl font-bold text-theme mb-4">
           Open-Source Coding Models
         </h1>
-        <p className="text-zinc-400 max-w-2xl mx-auto">
+        <p className="text-secondary max-w-2xl mx-auto">
           In 2026, open-weight code models match proprietary alternatives on raw code generation benchmarks.
           Self-host them for zero per-seat costs, complete code privacy, and unlimited inference.
         </p>
       </div>
 
       <section className="mb-16">
-        <h2 className="text-xl font-semibold text-white mb-6 font-[family-name:var(--font-neural)]">
+        <h2 className="text-xl font-semibold text-theme mb-6">
           Choose by Hardware
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -178,13 +178,13 @@ export default function OpenSourceModelsPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-100">{cat.name}</h3>
-                  <p className="text-xs text-zinc-500">{cat.vram} VRAM</p>
+                  <h3 className="text-sm font-semibold text-theme">{cat.name}</h3>
+                  <p className="text-xs text-secondary">{cat.vram} VRAM</p>
                 </div>
               </div>
               <ul className="space-y-1">
                 {cat.models.map((m) => (
-                  <li key={m} className="text-sm text-zinc-400 flex items-center gap-1.5">
+                  <li key={m} className="text-sm text-secondary flex items-center gap-1.5">
                     <svg className="w-3 h-3 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -198,30 +198,30 @@ export default function OpenSourceModelsPage() {
       </section>
 
       <section className="mb-16">
-        <h2 className="text-xl font-semibold text-white mb-6 font-[family-name:var(--font-neural)]">
+        <h2 className="text-xl font-semibold text-theme mb-6">
           Model Leaderboard
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Model</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Lab</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Params</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">License</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">SWE-Bench</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">LiveCodeBench</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-medium">Context</th>
+              <tr className="border-b border-light">
+                <th className="text-left py-3 px-4 text-secondary font-medium">Model</th>
+                <th className="text-left py-3 px-4 text-secondary font-medium">Lab</th>
+                <th className="text-left py-3 px-4 text-secondary font-medium">Params</th>
+                <th className="text-left py-3 px-4 text-secondary font-medium">License</th>
+                <th className="text-left py-3 px-4 text-secondary font-medium">SWE-Bench</th>
+                <th className="text-left py-3 px-4 text-secondary font-medium">LiveCodeBench</th>
+                <th className="text-left py-3 px-4 text-secondary font-medium">Context</th>
               </tr>
             </thead>
             <tbody>
               {models.map((m) => (
-                <tr key={m.name} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                <tr key={m.name} className="border-b border-light hover:bg-white/[0.02] transition-colors">
                   <td className="py-3 px-4">
-                    <span className="text-zinc-100 font-medium">{m.name}</span>
+                    <span className="text-theme font-medium">{m.name}</span>
                   </td>
-                  <td className="py-3 px-4 text-zinc-400">{m.lab}</td>
-                  <td className="py-3 px-4 text-zinc-400 font-mono text-xs">{m.params}</td>
+                  <td className="py-3 px-4 text-secondary">{m.lab}</td>
+                  <td className="py-3 px-4 text-secondary font-mono text-xs">{m.params}</td>
                   <td className="py-3 px-4">
                     <Badge variant={m.license === "Apache 2.0" ? "success" : m.license === "MIT" ? "cyan" : "default"}>
                       {m.license}
@@ -229,7 +229,7 @@ export default function OpenSourceModelsPage() {
                   </td>
                   <td className="py-3 px-4 text-emerald-400 font-mono">{m.sweBench}</td>
                   <td className="py-3 px-4 text-stream-400 font-mono">{m.liveCodeBench}</td>
-                  <td className="py-3 px-4 text-zinc-400 font-mono text-xs">{m.context}</td>
+                  <td className="py-3 px-4 text-secondary font-mono text-xs">{m.context}</td>
                 </tr>
               ))}
             </tbody>
@@ -238,7 +238,7 @@ export default function OpenSourceModelsPage() {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-xl font-semibold text-white mb-6 font-[family-name:var(--font-neural)]">
+        <h2 className="text-xl font-semibold text-theme mb-6">
           Model Details & Deployment
         </h2>
         {models.map((model) => (
@@ -246,14 +246,14 @@ export default function OpenSourceModelsPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-lg font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">
+                  <h3 className="text-lg font-semibold text-theme">
                     {model.name}
                   </h3>
                   <Badge variant={model.license === "Apache 2.0" ? "success" : model.license === "MIT" ? "cyan" : "default"}>
                     {model.license}
                   </Badge>
                 </div>
-                <p className="text-sm text-zinc-500">{model.lab}</p>
+                <p className="text-sm text-secondary">{model.lab}</p>
               </div>
               <a
                 href={model.url}
@@ -270,30 +270,30 @@ export default function OpenSourceModelsPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
               <div className="glass rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Parameters</p>
-                <p className="text-xs text-zinc-200 font-mono mt-0.5">{model.params}</p>
+                <p className="text-[10px] text-secondary uppercase tracking-wider">Parameters</p>
+                <p className="text-xs text-theme font-mono mt-0.5">{model.params}</p>
               </div>
               <div className="glass rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Context</p>
-                <p className="text-xs text-zinc-200 font-mono mt-0.5">{model.context}</p>
+                <p className="text-[10px] text-secondary uppercase tracking-wider">Context</p>
+                <p className="text-xs text-theme font-mono mt-0.5">{model.context}</p>
               </div>
               <div className="glass rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">VRAM Needed</p>
-                <p className="text-xs text-zinc-200 font-mono mt-0.5">{model.vram}</p>
+                <p className="text-[10px] text-secondary uppercase tracking-wider">VRAM Needed</p>
+                <p className="text-xs text-theme font-mono mt-0.5">{model.vram}</p>
               </div>
               <div className="glass rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Best For</p>
-                <p className="text-xs text-zinc-200 mt-0.5">{model.bestFor}</p>
+                <p className="text-[10px] text-secondary uppercase tracking-wider">Best For</p>
+                <p className="text-xs text-theme mt-0.5">{model.bestFor}</p>
               </div>
             </div>
 
             <div>
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-medium">Deployment Commands</p>
+              <p className="text-xs text-secondary uppercase tracking-wider mb-2 font-medium">Deployment Commands</p>
               <div className="space-y-1.5">
                 {model.deploy.map((d) => (
                   <div key={d.tool} className="flex items-center gap-2">
                     <Badge variant="default" className="shrink-0">{d.tool}</Badge>
-                    <code className="text-xs text-zinc-300 font-mono bg-zinc-950/50 px-2 py-1 rounded overflow-x-auto whitespace-nowrap">
+                    <code className="text-xs text-theme font-mono bg-theme/50 px-2 py-1 rounded overflow-x-auto whitespace-nowrap">
                       {d.cmd}
                     </code>
                   </div>
@@ -306,14 +306,14 @@ export default function OpenSourceModelsPage() {
 
       {models.length > 0 && (
         <section className="mt-16 p-8 rounded-lg glass glass-strong text-center">
-          <h2 className="text-xl font-semibold text-white mb-3 font-[family-name:var(--font-neural)]">
+          <h2 className="text-xl font-semibold text-theme mb-3">
             Run any model in AIVerse
           </h2>
-          <p className="text-zinc-400 mb-6 max-w-xl mx-auto">
+          <p className="text-secondary mb-6 max-w-xl mx-auto">
             Connect your own OpenAI-compatible endpoint (vLLM, Ollama, SGLang) and route agent
             execution through the model of your choice. Your code never leaves your hardware.
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
+          <div className="flex items-center justify-center gap-2 text-sm text-secondary">
             <span>Configure in</span>
             <code className="text-purple-400 font-mono text-xs bg-purple-500/10 px-2 py-0.5 rounded">Settings → API Keys</code>
           </div>

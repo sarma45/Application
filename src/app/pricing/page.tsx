@@ -108,8 +108,8 @@ export default function PricingPage() {
     <div className="container-main py-16">
       <div className="text-center mb-12">
         <Badge variant="purple" className="mb-4">Pricing</Badge>
-        <h1 className="text-4xl font-bold text-white font-[family-name:var(--font-neural)]">Simple, transparent pricing</h1>
-        <p className="mt-2 text-zinc-400">Choose the plan that fits your needs</p>
+        <h1 className="text-4xl font-bold text-theme">Simple, transparent pricing</h1>
+        <p className="mt-2 text-secondary">Choose the plan that fits your needs</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -124,21 +124,21 @@ export default function PricingPage() {
               </div>
             )}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">{plan.name}</h3>
+              <h3 className="text-lg font-semibold text-theme">{plan.name}</h3>
               <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white font-[family-name:var(--font-neural)]">
+                <span className="text-3xl font-bold text-theme">
                   {plan.price === 0 ? "Free" : `$${plan.price}`}
                 </span>
-                {plan.price > 0 && <span className="text-sm text-zinc-500">/mo</span>}
+                {plan.price > 0 && <span className="text-sm text-secondary">/mo</span>}
               </div>
-              <div className="mt-3 space-y-1 text-sm text-zinc-500">
+              <div className="mt-3 space-y-1 text-sm text-secondary">
                 <p>{plan.credits.toLocaleString()} credits/mo</p>
                 <p>{plan.runs} runs/day</p>
               </div>
             </div>
             <ul className="space-y-2 mb-6 flex-1">
               {plan.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-zinc-300">
+                <li key={f} className="flex items-start gap-2 text-sm text-theme">
                   <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
@@ -159,7 +159,7 @@ export default function PricingPage() {
       </div>
 
       <div className="mt-12 text-center">
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-secondary">
           Need enterprise features?{" "}
           <a href="mailto:sales@aiverse.ai" className="text-purple-400 hover:text-purple-300 transition-colors">
             Contact our sales team

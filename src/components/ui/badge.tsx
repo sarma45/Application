@@ -8,7 +8,7 @@ export function Badge({ variant = "default", children, className }: BadgeProps) 
   const base = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium backdrop-blur-sm";
 
   const variants: Record<string, string> = {
-    default: "bg-white/5 text-zinc-300 border border-white/5",
+    default: "bg-white/5 text-secondary border border-light",
     success: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
     warning: "bg-yellow-500/10 text-yellow-300 border border-yellow-500/20",
     danger: "bg-red-500/10 text-red-300 border border-red-500/20",

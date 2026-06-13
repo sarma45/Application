@@ -41,8 +41,8 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
     <div className="container-main py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Explore Agents</h1>
-          <p className="text-sm text-zinc-500">{agents.length} agents available</p>
+          <h1 className="text-2xl font-bold text-theme">Explore Agents</h1>
+          <p className="text-sm text-secondary">{agents.length} agents available</p>
         </div>
         <Link href="/agents/create">
           <Button>Publish Agent</Button>
@@ -69,11 +69,11 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
       {agents.length === 0 ? (
         <Card className="p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full glass flex items-center justify-center">
-            <svg className="w-8 h-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-8 h-8 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-zinc-500">No agents found</p>
+          <p className="text-secondary">No agents found</p>
           <Link href="/agents/create">
             <Button variant="secondary" className="mt-4">Be the first to publish</Button>
           </Link>
@@ -87,13 +87,13 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
                   <Badge variant={agent.category === "CHAT" ? "purple" : agent.category === "CODE" ? "success" : agent.category === "DATA" ? "warning" : "default"}>
                     {agent.category}
                   </Badge>
-                  <span className="text-xs text-zinc-500 font-mono">{agent.totalRuns} runs</span>
+                  <span className="text-xs text-secondary font-mono">{agent.totalRuns} runs</span>
                 </div>
-                <h3 className="font-semibold text-zinc-100 group-hover:neural-text transition-all duration-300 font-[family-name:var(--font-neural)]">
+                <h3 className="font-semibold text-theme group-hover:neural-text transition-all duration-300">
                   {agent.name}
                 </h3>
-                <p className="mt-1 text-sm text-zinc-500 line-clamp-2">{agent.systemPrompt?.slice(0, 100)}</p>
-                <div className="mt-4 flex items-center justify-between text-xs text-zinc-600">
+                <p className="mt-1 text-sm text-secondary line-clamp-2">{agent.systemPrompt?.slice(0, 100)}</p>
+                <div className="mt-4 flex items-center justify-between text-xs text-muted">
                   <span>by {agent.creator.username || "anonymous"}</span>
                   {agent.pricingType === "FREE" ? (
                     <span className="text-emerald-400">Free</span>

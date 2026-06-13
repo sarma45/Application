@@ -30,14 +30,14 @@ export default function MyAgentsPage() {
       });
   }, []);
 
-  if (loading) return <div className="container-main py-8"><p className="text-zinc-500">Loading...</p></div>;
+  if (loading) return <div className="container-main py-8"><p className="text-secondary">Loading...</p></div>;
 
   return (
     <div className="container-main py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">My Agents</h1>
-          <p className="text-sm text-zinc-500">Manage your published AI agents</p>
+          <h1 className="text-2xl font-bold text-theme">My Agents</h1>
+          <p className="text-sm text-secondary">Manage your published AI agents</p>
         </div>
         <Link href="/agents/create">
           <Button size="sm">Create Agent</Button>
@@ -47,7 +47,7 @@ export default function MyAgentsPage() {
       {agents.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-zinc-500 mb-4">No agents yet</p>
+            <p className="text-secondary mb-4">No agents yet</p>
             <Link href="/agents/create">
               <Button variant="secondary" size="sm">Create your first agent</Button>
             </Link>
@@ -59,7 +59,7 @@ export default function MyAgentsPage() {
             <Link key={agent.id} href={`/agents/${agent.slug}`}>
               <Card className="p-5 hover:border-zinc-700 transition-colors flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-zinc-200">{agent.name}</h3>
+                  <h3 className="font-semibold text-theme">{agent.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="default">{agent.category}</Badge>
                     <Badge
@@ -69,7 +69,7 @@ export default function MyAgentsPage() {
                     </Badge>
                   </div>
                 </div>
-                <div className="text-right text-sm text-zinc-500">
+                <div className="text-right text-sm text-secondary">
                   <p>{agent.totalRuns} runs</p>
                   {agent.avgRating ? <p>★ {agent.avgRating.toFixed(1)}</p> : null}
                 </div>

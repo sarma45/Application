@@ -54,7 +54,7 @@ export function ReviewForm({ agentId, slug, onSubmitted }: ReviewFormProps) {
             onMouseEnter={() => setHover(star)}
             onMouseLeave={() => setHover(0)}
             className={`text-lg transition-colors ${
-              star <= (hover || rating) ? "text-yellow-400" : "text-zinc-600"
+              star <= (hover || rating) ? "text-yellow-400" : "text-muted"
             }`}
           >
             ★
@@ -66,7 +66,7 @@ export function ReviewForm({ agentId, slug, onSubmitted }: ReviewFormProps) {
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Review title (optional)"
         maxLength={200}
-        className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        className="w-full rounded-lg border border-theme bg-card px-3 py-2 text-sm text-theme placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-purple-500"
       />
       <textarea
         value={body}
@@ -74,7 +74,7 @@ export function ReviewForm({ agentId, slug, onSubmitted }: ReviewFormProps) {
         placeholder="Share your experience (optional)"
         maxLength={5000}
         rows={3}
-        className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+        className="w-full rounded-lg border border-theme bg-card px-3 py-2 text-sm text-theme placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
       />
       {error && <p className="text-xs text-red-400">{error}</p>}
       <Button type="submit" size="sm" loading={submitting} disabled={rating === 0}>

@@ -68,8 +68,8 @@ function ResetPasswordForm() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Password reset!</h1>
-          <p className="text-sm text-zinc-500 mb-4">Your password has been updated successfully.</p>
+          <h1 className="text-xl font-semibold text-theme mb-2">Password reset!</h1>
+          <p className="text-sm text-secondary mb-4">Your password has been updated successfully.</p>
           <Link href="/login">
             <Button>Sign in with new password</Button>
           </Link>
@@ -82,8 +82,8 @@ function ResetPasswordForm() {
     <Card className="w-full max-w-sm">
       <CardHeader>
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Set new password</h1>
-          <p className="mt-1 text-sm text-zinc-500">Must be at least 8 characters</p>
+          <h1 className="text-xl font-semibold text-theme">Set new password</h1>
+          <p className="mt-1 text-sm text-secondary">Must be at least 8 characters</p>
         </div>
       </CardHeader>
       <CardContent>
@@ -111,7 +111,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-      <Suspense fallback={<div className="text-zinc-500">Loading...</div>}>
+      <Suspense fallback={<div className="text-secondary">Loading...</div>}>
         <ResetPasswordForm />
       </Suspense>
     </div>

@@ -19,9 +19,9 @@ export function Button({
     primary:
       "bg-gradient-to-r from-purple-600 to-stream-500 text-white hover:shadow-[0_0_20px_rgb(106_0_240_/_0.4)] active:scale-[0.97]",
     secondary:
-      "glass glass-strong text-zinc-100 hover:bg-white/10 hover:border-stream-500/30",
+      "glass glass-strong text-theme hover:bg-white/10 hover:border-stream-500/30",
     ghost:
-      "text-zinc-400 hover:text-zinc-100 hover:bg-white/5",
+      "text-secondary hover:text-theme hover:bg-white/5",
     destructive:
       "bg-red-600 text-white hover:bg-red-500",
   };

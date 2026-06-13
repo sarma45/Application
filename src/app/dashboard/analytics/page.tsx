@@ -30,8 +30,8 @@ export default async function AnalyticsPage() {
     <div className="container-main py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Creator Analytics</h1>
-          <p className="text-sm text-zinc-500">Track your agent performance and earnings</p>
+          <h1 className="text-2xl font-bold text-theme">Creator Analytics</h1>
+          <p className="text-sm text-secondary">Track your agent performance and earnings</p>
         </div>
         <Link href="/dashboard">
           <Button variant="ghost" size="sm">Dashboard</Button>
@@ -41,21 +41,21 @@ export default async function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Published Agents</p>
-            <p className="text-2xl font-bold text-white mt-1">{agents.length}</p>
+            <p className="text-sm text-secondary">Published Agents</p>
+            <p className="text-2xl font-bold text-theme mt-1">{agents.length}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Total Runs</p>
-            <p className="text-2xl font-bold text-white mt-1">
+            <p className="text-sm text-secondary">Total Runs</p>
+            <p className="text-2xl font-bold text-theme mt-1">
               {agents.reduce((sum, a) => sum + a.totalRuns, 0)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Lifetime Earned</p>
+            <p className="text-sm text-secondary">Lifetime Earned</p>
             <p className="text-2xl font-bold text-emerald-400 mt-1">
               {formatCredits(totalEarnings?.lifetimeEarned || 0)} credits
             </p>
@@ -63,7 +63,7 @@ export default async function AnalyticsPage() {
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-sm text-zinc-500">Pending Payouts</p>
+            <p className="text-sm text-secondary">Pending Payouts</p>
             <p className="text-2xl font-bold text-yellow-400 mt-1">
               ${totalPendingPayouts.toFixed(2)}
             </p>
@@ -74,7 +74,7 @@ export default async function AnalyticsPage() {
       {agents.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-zinc-500 mb-4">No agents published yet</p>
+            <p className="text-secondary mb-4">No agents published yet</p>
             <Link href="/agents/create">
               <Button>Create your first agent</Button>
             </Link>
@@ -82,7 +82,7 @@ export default async function AnalyticsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Agent Performance</h2>
+          <h2 className="text-lg font-semibold text-theme">Agent Performance</h2>
           {agents.map((agent) => (
             <Card key={agent.id}>
               <CardContent className="p-5">
@@ -91,7 +91,7 @@ export default async function AnalyticsPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <Link
                         href={`/agents/${agent.slug}`}
-                        className="text-sm font-semibold text-zinc-200 hover:text-purple-400"
+                        className="text-sm font-semibold text-theme hover:text-purple-400"
                       >
                         {agent.name}
                       </Link>
@@ -99,12 +99,12 @@ export default async function AnalyticsPage() {
                         {agent.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-secondary">
                       {agent._count.executions} runs &middot; {agent._count.reviews} reviews
                       {agent.avgRating ? ` &middot; ${agent.avgRating.toFixed(1)} ★` : ""}
                     </p>
                   </div>
-                  <div className="text-right text-xs text-zinc-500">
+                  <div className="text-right text-xs text-secondary">
                     <p>{agent.creditsPerRun} credits/run</p>
                     <p>{formatDate(agent.createdAt)}</p>
                   </div>

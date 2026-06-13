@@ -14,8 +14,8 @@ export default function CreditsPage() {
   return (
     <div className="container-main py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-neural)]">Buy Credits</h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h1 className="text-2xl font-bold text-theme">Buy Credits</h1>
+        <p className="text-sm text-secondary mt-1">
           Credits power every agent execution on AIVerse. Purchase a pack below or{" "}
           <Link href="/pricing" className="text-purple-400 hover:text-stream-400 transition-colors">
             subscribe to a plan
@@ -32,16 +32,16 @@ export default function CreditsPage() {
                 <Badge variant="purple">BEST VALUE</Badge>
               </div>
             )}
-            <h2 className="text-2xl font-bold text-white mb-1 font-[family-name:var(--font-neural)]">{formatCredits(pack.credits)} Credits</h2>
+            <h2 className="text-2xl font-bold text-theme mb-1">{formatCredits(pack.credits)} Credits</h2>
             <p className="text-3xl font-bold text-stream-400 mb-4">${pack.price.toFixed(2)}</p>
-            <p className="text-sm text-zinc-500 mb-6">
+            <p className="text-sm text-secondary mb-6">
               ${(pack.price / pack.credits).toFixed(4)} per credit
             </p>
             <form action="/api/checkout" method="POST">
               <input type="hidden" name="credits" value={pack.credits} />
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-lg glass glass-strong text-white font-medium transition-all duration-300 hover:neural-glow hover:border-purple-500/40"
+                className="w-full py-2.5 px-4 rounded-lg glass glass-strong text-theme font-medium transition-all duration-300 hover:neural-glow hover:border-purple-500/40"
               >
                 Buy {formatCredits(pack.credits)} Credits
               </button>

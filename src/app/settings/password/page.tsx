@@ -59,8 +59,8 @@ export default function ChangePasswordPage() {
         <Card>
           <CardContent className="py-8 text-center">
             <div className="text-4xl mb-4">&#10003;</div>
-            <h2 className="text-xl font-semibold text-white mb-2">Password Changed</h2>
-            <p className="text-zinc-400 mb-6">Your password has been updated successfully.</p>
+            <h2 className="text-xl font-semibold text-theme mb-2">Password Changed</h2>
+            <p className="text-secondary mb-6">Your password has been updated successfully.</p>
             <Button onClick={() => router.push("/settings")}>Back to Settings</Button>
           </CardContent>
         </Card>
@@ -70,11 +70,11 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="container-main py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-white mb-8">Change Password</h1>
+      <h1 className="text-2xl font-bold text-theme mb-8">Change Password</h1>
 
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-zinc-100">Update your password</h2>
+          <h2 className="font-semibold text-theme">Update your password</h2>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

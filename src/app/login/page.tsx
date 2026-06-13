@@ -85,10 +85,10 @@ export default function LoginPage() {
         <CardHeader>
           <div className="text-center">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-stream-500 neural-glow">
-              <span className="text-lg font-bold text-white">A</span>
+              <span className="text-lg font-bold text-theme">A</span>
             </div>
-            <h1 className="text-xl font-semibold text-zinc-100 font-[family-name:var(--font-neural)]">Welcome back</h1>
-            <p className="mt-1 text-sm text-zinc-500">Sign in to your account</p>
+            <h1 className="text-xl font-semibold text-theme">Welcome back</h1>
+            <p className="mt-1 text-sm text-secondary">Sign in to your account</p>
           </div>
         </CardHeader>
         <div className="p-6 pt-0">
@@ -101,13 +101,13 @@ export default function LoginPage() {
               Sign in
             </Button>
             <div className="text-right">
-              <Link href="/forgot-password" className="text-xs text-zinc-500 hover:text-purple-400 transition-colors">
+              <Link href="/forgot-password" className="text-xs text-secondary hover:text-purple-400 transition-colors">
                 Forgot password?
               </Link>
             </div>
           </form>
           <div className="mt-4 space-y-2">
-            <p className="text-center text-sm text-zinc-500">
+            <p className="text-center text-sm text-secondary">
               Don&apos;t have an account?{" "}
               <Link href="/register" className="text-purple-400 hover:text-purple-300 transition-colors">
                 Sign up

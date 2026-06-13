@@ -51,7 +51,7 @@ export function ModerationActions({ agentId }: ModerationActionsProps) {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Reason for rejection..."
-            className="w-48 rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+            className="w-48 rounded border border-theme bg-card px-2 py-1 text-xs text-theme placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-red-500"
             autoFocus
           />
           <Button
@@ -65,7 +65,7 @@ export function ModerationActions({ agentId }: ModerationActionsProps) {
           </Button>
           <button
             onClick={() => { setShowRejectInput(false); setRejectReason(""); }}
-            className="text-xs text-zinc-500 hover:text-zinc-400"
+            className="text-xs text-secondary hover:text-theme"
           >
             Cancel
           </button>

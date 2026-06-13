@@ -56,22 +56,23 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --radius: 0.75rem;
-  }
-}
 
-@layer base {
-  * {
-    border-color: hsl(var(--border));
-  }
-  body {
-    background: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: var(--font-body);
-    -webkit-font-smoothing: antialiased;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-neural);
-    letter-spacing: -0.02em;
+    --text-primary: hsl(0 0% 98%);
+    --text-secondary: hsl(240 5% 64.9%);
+    --text-muted: hsl(240 5% 46%);
+    --text-inverse: hsl(240 10% 3.9%);
+    --bg-primary: hsl(240 10% 3.9%);
+    --bg-secondary: hsl(240 10% 5.9%);
+    --bg-elevated: hsl(240 6% 10%);
+    --bg-card: hsl(240 10% 5.9%);
+    --border-light: rgb(255 255 255 / 0.05);
+    --border-medium: rgb(255 255 255 / 0.08);
+    --border-strong: rgb(255 255 255 / 0.12);
+    --glass-bg: rgb(24 24 36 / 0.4);
+    --glass-border: rgb(255 255 255 / 0.08);
+    --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.3);
+    --glass-strong-bg: rgb(24 24 36 / 0.6);
+    --glass-strong-border: rgb(255 255 255 / 0.12);
   }
 }
 
@@ -85,6 +86,18 @@
   --muted: 240 5% 92%;
   --muted-foreground: 240 5% 40%;
   --border: 240 5% 85%;
+
+  --text-primary: hsl(240 10% 3.9%);
+  --text-secondary: hsl(240 5% 40%);
+  --text-muted: hsl(240 5% 60%);
+  --text-inverse: hsl(0 0% 98%);
+  --bg-primary: hsl(0 0% 97%);
+  --bg-secondary: hsl(0 0% 100%);
+  --bg-elevated: hsl(0 0% 100%);
+  --bg-card: hsl(0 0% 98%);
+  --border-light: rgb(0 0 0 / 0.04);
+  --border-medium: rgb(0 0 0 / 0.08);
+  --border-strong: rgb(0 0 0 / 0.12);
   --glass-bg: rgb(255 255 255 / 0.5);
   --glass-border: rgb(0 0 0 / 0.08);
   --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.08);
@@ -92,26 +105,29 @@
   --glass-strong-border: rgb(0 0 0 / 0.12);
 }
 
-[data-theme="light"] body {
-  background: hsl(0 0% 97%);
-  color: hsl(240 10% 3.9%);
-}
-
-[data-theme="light"] .neural-glow {
-  box-shadow: 0 0 20px rgb(106 0 240 / 0.15), 0 0 40px rgb(106 0 240 / 0.05);
-}
-
-[data-theme="light"] .neural-glow-cyan {
-  box-shadow: 0 0 20px rgb(0 230 204 / 0.15), 0 0 40px rgb(0 230 204 / 0.05);
-}
-
 [data-theme="light"] canvas.fixed {
-  opacity: 0.15 !important;
+  opacity: 0.12 !important;
 }
 
 [data-theme="light"] .glass-card-hover:hover {
   border-color: rgb(106 0 240 / 0.2);
   box-shadow: var(--glass-shadow), 0 0 20px rgb(106 0 240 / 0.05);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-neural);
+    letter-spacing: -0.02em;
+  }
 }
 
 @utility container-main {
@@ -246,9 +262,54 @@
   animation: float 4s ease-in-out infinite;
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@utility animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @keyframes count-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@utility text-theme {
+  color: var(--text-primary);
+}
+
+@utility text-secondary {
+  color: var(--text-secondary);
+}
+
+@utility text-muted {
+  color: var(--text-muted);
+}
+
+@utility bg-theme {
+  background: var(--bg-primary);
+}
+
+@utility bg-card {
+  background: var(--bg-card);
+}
+
+@utility bg-elevated {
+  background: var(--bg-elevated);
+}
+
+@utility border-theme {
+  border-color: var(--border-medium);
+}
+
+@utility border-light {
+  border-color: var(--border-light);
+}
+
+@utility border-strong {
+  border-color: var(--border-strong);
 }
 
 @utility skeleton {
@@ -259,7 +320,35 @@
 }
 
 @layer utilities {
-  .noise-overlay {
+  .skip-link {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  z-index: 99999;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: hsl(262 85% 65%);
+  color: white;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.noise-overlay {
     position: fixed;
     inset: 0;
     pointer-events: none;

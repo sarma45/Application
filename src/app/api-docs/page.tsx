@@ -91,7 +91,7 @@ function MethodBadge({ method }: { method: string }) {
     DELETE: "bg-red-600",
   };
   return (
-    <span className={`inline-block px-2 py-0.5 text-xs font-mono font-bold text-white rounded ${colors[method] || "bg-gray-600"}`}>
+    <span className={`inline-block px-2 py-0.5 text-xs font-mono font-bold text-theme rounded ${colors[method] || "bg-gray-600"}`}>
       {method}
     </span>
   );
@@ -100,25 +100,25 @@ function MethodBadge({ method }: { method: string }) {
 export default function ApiDocsPage() {
   return (
     <div className="container-main py-8">
-      <h1 className="text-2xl font-bold text-white mb-2 font-[family-name:var(--font-neural)]">API Documentation</h1>
-      <p className="text-sm text-zinc-500 mb-8">
+      <h1 className="text-2xl font-bold text-theme mb-2">API Documentation</h1>
+      <p className="text-sm text-secondary mb-8">
         AIVerse 2.0 REST API &mdash; base URL: <code className="text-purple-400">{process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}</code>
       </p>
 
       <div className="mb-8 p-5 rounded-lg glass glass-strong">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-2 font-[family-name:var(--font-neural)]">Authentication</h2>
-        <p className="text-sm text-zinc-500 mb-2">
+        <h2 className="text-lg font-semibold text-theme mb-2">Authentication</h2>
+        <p className="text-sm text-secondary mb-2">
           Most endpoints require a valid session cookie (HTTP-only, set by NextAuth). Include credentials or the
           <code className="text-purple-400"> next-auth.session-token</code> cookie.
         </p>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-secondary">
           Admin endpoints require the <code className="text-purple-400">ADMIN</code> or <code className="text-purple-400">MODERATOR</code> role.
         </p>
       </div>
 
       {API_ENDPOINTS.map((group) => (
         <div key={group.group} className="mb-10">
-          <h2 className="text-lg font-semibold text-white mb-4 border-b border-white/5 pb-2 font-[family-name:var(--font-neural)]">
+          <h2 className="text-lg font-semibold text-theme mb-4 border-b border-light pb-2">
             {group.group}
           </h2>
           <div className="space-y-2">
@@ -131,10 +131,10 @@ export default function ApiDocsPage() {
                   <MethodBadge method={ep.method} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <code className="text-sm font-mono text-zinc-200 break-all">
+                  <code className="text-sm font-mono text-theme break-all">
                     {ep.path}
                   </code>
-                  <p className="text-sm text-zinc-500 mt-0.5">{ep.desc}</p>
+                  <p className="text-sm text-secondary mt-0.5">{ep.desc}</p>
                 </div>
                 <div className="shrink-0">
                   <span className={`text-xs px-2 py-0.5 rounded font-medium backdrop-blur-sm ${
@@ -152,8 +152,8 @@ export default function ApiDocsPage() {
       ))}
 
       <div className="mt-12 p-6 rounded-lg glass glass-strong">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-3 font-[family-name:var(--font-neural)]">Error Response Format</h2>
-        <pre className="text-sm text-zinc-300 rounded overflow-x-auto">
+        <h2 className="text-lg font-semibold text-theme mb-3">Error Response Format</h2>
+        <pre className="text-sm text-theme rounded overflow-x-auto">
 {`{
   "error": "Human-readable error message"
 }`}
@@ -161,12 +161,12 @@ export default function ApiDocsPage() {
       </div>
 
       <div className="mt-6 p-6 rounded-lg glass glass-strong">
-        <h2 className="text-lg font-semibold text-zinc-100 mb-3 font-[family-name:var(--font-neural)]">Pagination</h2>
-        <p className="text-sm text-zinc-500 mb-2">
+        <h2 className="text-lg font-semibold text-theme mb-3">Pagination</h2>
+        <p className="text-sm text-secondary mb-2">
           List endpoints use cursor-based pagination. Include <code className="text-purple-400">?cursor=&lt;id&gt;&limit=20</code> to paginate.
           The response returns <code className="text-purple-400">nextCursor</code> (null if last page).
         </p>
-        <pre className="text-sm text-zinc-300 rounded overflow-x-auto">
+        <pre className="text-sm text-theme rounded overflow-x-auto">
 {`{
   "data": [...],
   "nextCursor": "abc123" | null

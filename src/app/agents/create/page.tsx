@@ -53,7 +53,7 @@ export default function CreateAgentPage() {
 
   return (
     <div className="container-main py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold text-white mb-8">Publish an Agent</h1>
+      <h1 className="text-2xl font-bold text-theme mb-8">Publish an Agent</h1>
 
       <Card>
         <CardContent className="p-6">
@@ -62,11 +62,11 @@ export default function CreateAgentPage() {
 
             <Input id="slug" name="slug" label="URL Slug" placeholder="my-awesome-agent" required />
             <div>
-              <label htmlFor="category" className="text-sm font-medium text-zinc-300 block mb-1.5">Category</label>
+              <label htmlFor="category" className="text-sm font-medium text-theme block mb-1.5">Category</label>
               <select
                 id="category"
                 name="category"
-                className="flex h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex h-10 w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme focus:outline-none focus:ring-2 focus:ring-purple-500"
                 required
               >
                 {categories.map((cat) => (
@@ -76,22 +76,22 @@ export default function CreateAgentPage() {
             </div>
 
             <div>
-              <label htmlFor="systemPrompt" className="text-sm font-medium text-zinc-300 block mb-1.5">System Prompt</label>
+              <label htmlFor="systemPrompt" className="text-sm font-medium text-theme block mb-1.5">System Prompt</label>
               <textarea
                 id="systemPrompt"
                 name="systemPrompt"
                 rows={6}
-                className="flex w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="You are an AI agent that..."
               />
             </div>
 
             <div>
-              <label htmlFor="pricingType" className="text-sm font-medium text-zinc-300 block mb-1.5">Pricing</label>
+              <label htmlFor="pricingType" className="text-sm font-medium text-theme block mb-1.5">Pricing</label>
               <select
                 id="pricingType"
                 name="pricingType"
-                className="flex h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex h-10 w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="FREE">Free</option>
                 <option value="PAID">Paid (credits)</option>
