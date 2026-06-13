@@ -12,14 +12,10 @@ const authPaths = [
 const csrfSafeMethods = ["GET", "HEAD", "OPTIONS"];
 const webhookPaths = ["/api/webhooks/stripe", "/api/webhooks/razorpay"];
 
-async function getRedisClient() {
-  try {
-    const { redis } = await import("@/lib/redis");
-    return redis && redis.status === "ready" ? redis : null;
-  } catch {
-    return null;
-  }
-}
+// In-memory rate limiting (Edge Runtime compatible)
+const g = globalThis as { __rateLimits?: Map<string, { count: number; reset: number }> };
+const rateLimits = g.__rateLimits ?? new Map<string, { count: number; reset: number }>();
+g.__rateLimits = rateLimits;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -46,7 +42,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Rate limiting
+    // Rate limiting (in-memory only for Edge Runtime compatibility)
     const ip = request.headers.get("x-real-ip")
       || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       || "unknown";
@@ -55,44 +51,10 @@ export async function middleware(request: NextRequest) {
     const windowSeconds = zone === "auth" ? 300 : 60;
     const maxReqs = zone === "auth" ? 10 : 100;
     const key = `rl:${zone}:${ip}`;
-
-    const redis = await getRedisClient();
-    if (redis) {
-      try {
-        const multi = redis.multi();
-        multi.incr(key);
-        multi.ttl(key);
-        const results = await multi.exec();
-        if (results) {
-          const count = (results[0]?.[1] as number) ?? 1;
-          const _ttl = (results[1]?.[1] as number) ?? windowSeconds;
-          if (count === 1) {
-            await redis.expire(key, windowSeconds);
-          }
-          if (count > maxReqs) {
-            return NextResponse.json(
-              { error: "Too many requests. Please slow down." },
-              { status: 429, headers: { "Retry-After": String(windowSeconds) } }
-            );
-          }
-          const remaining = Math.max(0, maxReqs - count);
-          const response = NextResponse.next();
-          response.headers.set("X-RateLimit-Remaining", String(remaining));
-          return response;
-        }
-      } catch {
-        // fall through to in-memory fallback
-      }
-    }
-
-    // In-memory fallback if Redis is unavailable
-    const g = globalThis as { __rateLimits?: Map<string, { count: number; reset: number }> };
-    const rateLimits = g.__rateLimits ?? new Map<string, { count: number; reset: number }>();
-    g.__rateLimits = rateLimits;
     const now = Date.now();
     const windowMs = windowSeconds * 1000;
 
-    // Cleanup expired entries every 100 requests
+    // Cleanup expired entries periodically
     if (rateLimits.size > 1000) {
       const cutoff = now - 60000;
       for (const [k, v] of rateLimits) {
