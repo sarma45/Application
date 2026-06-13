@@ -6,6 +6,8 @@ import { NeuralText } from "@/components/effects/neural-text";
 import { prisma } from "@/lib/prisma";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 const categories = [
   { slug: "CHAT", label: "Chat Agents", desc: "Conversational AI for any task", icon: "💬" },
   { slug: "CODE", label: "Code Agents", desc: "Generate, review, and debug code", icon: "⌨️" },
