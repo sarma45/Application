@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, _useScroll, _useTransform, _useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -14,17 +14,17 @@ export default function HeroSection() {
   const [_currentWord, _setCurrentWord] = useState(0);
   const [_mousePosition, _setMousePosition] = useState({ x: 0, y: 0 });
 
-  const { scrollYProgress } = _useScroll({
+  const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  const opacity = _useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  const scale = _useTransform(scrollYProgress, [0, 0.8], [1, 0.8]);
-  const y = _useTransform(scrollYProgress, [0, 0.8], [0, 100]);
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.8]);
+  const y = useTransform(scrollYProgress, [0, 0.8], [0, 100]);
 
-  const springOpacity = _useSpring(opacity, { stiffness: 100, damping: 20 });
-  const springScale = _useSpring(scale, { stiffness: 100, damping: 20 });
+  const springOpacity = useSpring(opacity, { stiffness: 100, damping: 20 });
+  const springScale = useSpring(scale, { stiffness: 100, damping: 20 });
 
   useEffect(() => {
     const interval = setInterval(() => {
