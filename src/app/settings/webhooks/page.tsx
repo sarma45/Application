@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface Webhook {
   id: string;
@@ -29,6 +30,7 @@ export default function WebhooksPage() {
   const [newUrl, setNewUrl] = useState("");
   const [newEvents, setNewEvents] = useState<string[]>(["execution.completed"]);
   const [showSecret, setShowSecret] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   useEffect(() => { loadWebhooks(); }, []);
 
@@ -58,9 +60,10 @@ export default function WebhooksPage() {
     } catch {}
   }
 
-  async function deleteWebhook(id: string) {
-    if (!confirm("Delete this webhook?")) return;
-    try { await fetch("/api/webhooks", { method: "DELETE", body: JSON.stringify({ id }) }); loadWebhooks(); } catch {}
+  async function confirmDeleteWebhook() {
+    if (!deleteTarget) return;
+    try { await fetch("/api/webhooks", { method: "DELETE", body: JSON.stringify({ id: deleteTarget }) }); loadWebhooks(); } catch {}
+    setDeleteTarget(null);
   }
 
   async function toggleWebhook(id: string, isActive: boolean) {
@@ -79,8 +82,8 @@ export default function WebhooksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">Webhooks</h2>
-          <p className="text-sm text-zinc-500">Receive real-time events via HTTP callbacks</p>
+          <h2 className="text-xl font-bold text-theme">Webhooks</h2>
+          <p className="text-sm text-secondary">Receive real-time events via HTTP callbacks</p>
         </div>
         <Button onClick={() => { setShowNew(!showNew); setShowSecret(null); }} size="sm">
           {showNew ? "Cancel" : "Create Webhook"}
@@ -91,16 +94,16 @@ export default function WebhooksPage() {
         <Card>
           <CardContent className="p-5 space-y-4">
             <div>
-              <label className="text-sm text-zinc-400 mb-1 block">Endpoint URL</label>
+              <label className="text-sm text-secondary mb-1 block">Endpoint URL</label>
               <input
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
                 placeholder="https://your-app.com/webhook"
-                className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-purple-500"
+                className="w-full px-3 py-2 rounded-lg bg-card border border-theme text-theme text-sm focus:outline-none focus:border-purple-500 placeholder:text-muted"
               />
             </div>
             <div>
-              <label className="text-sm text-zinc-400 mb-2 block">Events</label>
+              <label className="text-sm text-secondary mb-2 block">Events</label>
               <div className="flex flex-wrap gap-2">
                 {allEvents.map((ev) => (
                   <button
@@ -109,7 +112,7 @@ export default function WebhooksPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       newEvents.includes(ev)
                         ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
-                        : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                        : "bg-card border-theme text-secondary hover:border-strong"
                     }`}
                   >
                     {eventLabels[ev]}
@@ -127,47 +130,47 @@ export default function WebhooksPage() {
           <CardContent className="p-5">
             <p className="text-sm font-medium text-emerald-400 mb-2">Webhook created! Signing secret:</p>
             <div className="flex gap-2">
-              <code className="flex-1 px-3 py-2 rounded-lg bg-zinc-800 text-zinc-200 text-sm font-mono break-all">
+              <code className="flex-1 px-3 py-2 rounded-lg bg-card text-theme text-sm font-mono break-all">
                 {showSecret}
               </code>
               <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(showSecret)}>
                 Copy
               </Button>
             </div>
-            <p className="text-xs text-zinc-500 mt-2">Use this secret to verify webhook payloads are from AIVerse.</p>
+            <p className="text-xs text-secondary mt-2">Use this secret to verify webhook payloads are from AIVerse.</p>
           </CardContent>
         </Card>
       )}
 
       {loading ? (
-        <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="h-16 rounded-xl bg-zinc-800/50 animate-pulse" />)}</div>
+        <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="h-16 rounded-xl bg-card animate-pulse" />)}</div>
       ) : webhooks.length === 0 ? (
-        <Card><CardContent className="p-8 text-center"><p className="text-zinc-500 text-sm">No webhooks yet.</p></CardContent></Card>
+        <Card><CardContent className="p-8 text-center"><p className="text-secondary text-sm">No webhooks yet.</p></CardContent></Card>
       ) : (
         <div className="space-y-3">
           {webhooks.map((wh) => (
-            <div key={wh.id} className="flex items-center justify-between p-4 rounded-xl border border-zinc-800 bg-zinc-900/30">
+              <div key={wh.id} className="flex items-center justify-between p-4 rounded-xl border border-theme bg-card">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`w-2 h-2 rounded-full ${wh.isActive ? "bg-emerald-400" : "bg-zinc-600"}`} />
-                  <code className="text-sm text-zinc-200 font-mono truncate block">{wh.url}</code>
+                  <span className={`w-2 h-2 rounded-full ${wh.isActive ? "bg-emerald-400" : "bg-muted"}`} />
+                  <code className="text-sm text-theme font-mono truncate block">{wh.url}</code>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {wh.events.map((ev) => (
-                    <span key={ev} className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">
+                    <span key={ev} className="text-[10px] px-1.5 py-0.5 rounded bg-card text-secondary">
                       {eventLabels[ev] || ev}
                     </span>
                   ))}
                 </div>
-                {wh.lastTriggeredAt && (
-                  <p className="text-[11px] text-zinc-600 mt-1">Last triggered {new Date(wh.lastTriggeredAt).toLocaleString()}</p>
+                  {wh.lastTriggeredAt && (
+                  <p className="text-[11px] text-muted mt-1">Last triggered {new Date(wh.lastTriggeredAt).toLocaleString()}</p>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-4">
                 <Button size="sm" variant="ghost" onClick={() => toggleWebhook(wh.id, wh.isActive)}>
                   {wh.isActive ? "Pause" : "Resume"}
                 </Button>
-                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => deleteWebhook(wh.id)}>
+                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => setDeleteTarget(wh.id)}>
                   Delete
                 </Button>
               </div>
@@ -175,6 +178,15 @@ export default function WebhooksPage() {
           ))}
         </div>
       )}
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteWebhook}
+        title="Delete Webhook?"
+        message="This will permanently delete this webhook. You cannot undo this action."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

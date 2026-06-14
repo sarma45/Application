@@ -12,6 +12,8 @@ import { executeSchema } from "@/lib/validations";
 import { checkSafety, sanitizeInput } from "@/lib/ai/safety";
 import { enqueueExecutionLog } from "@/lib/queue";
 import { logger } from "@/lib/logger";
+import { unauthorized, badRequest, forbidden, notFound, paymentRequired, serverError } from "@/lib/api-helpers";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -103,8 +105,8 @@ async function creditCreator(agentCreatorId: string, cost: number, executionId: 
     await prisma.$transaction(async (tx) => {
       const updated = await tx.wallet.upsert({
         where: { userId: agentCreatorId },
-        update: { balance: { increment: share }, lifetimeEarned: { increment: share } },
-        create: { userId: agentCreatorId, balance: share, lifetimeEarned: share, lifetimeSpent: 0 },
+        update: { balance: { increment: share } },
+        create: { userId: agentCreatorId, balance: share, lifetimeEarned: 0, lifetimeSpent: 0 },
       });
       await tx.transaction.create({
         data: {
@@ -115,6 +117,11 @@ async function creditCreator(agentCreatorId: string, cost: number, executionId: 
           referenceType: "AgentExecution",
           referenceId: executionId,
         },
+      });
+      await tx.creatorProfile.upsert({
+        where: { userId: agentCreatorId },
+        update: { totalEarned: { increment: share } },
+        create: { userId: agentCreatorId, totalEarned: share },
       });
     });
     await cacheDel(`wallet:${agentCreatorId}`);
@@ -129,7 +136,12 @@ export async function POST(
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
+  }
+
+  const rl = await rateLimit(req, "execute");
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests. Please slow down.", code: "RATE_LIMITED" }, { status: 429 });
   }
 
   const { slug } = await params;
@@ -138,42 +150,62 @@ export async function POST(
     const body = await req.json();
     const parsed = executeSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+      return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
     }
 
     const { message, systemPrompt, category, sessionId: clientSessionId } = parsed.data as any;
 
     const limit = await checkFreeTierLimit(session.user.id);
     if (!limit.allowed) {
-      return NextResponse.json(
-        { error: "Daily free tier limit reached. Upgrade your plan or try again tomorrow." },
-        { status: 402 }
-      );
+      return paymentRequired("Daily free tier limit reached. Upgrade your plan or try again tomorrow.");
     }
 
     const safety = await checkSafety(message, session.user.id);
     if (!safety.safe) {
-      return NextResponse.json({ error: safety.reason }, { status: 400 });
+      return badRequest(safety.reason || "Content policy violation");
     }
 
     const safeMessage = sanitizeInput(message);
 
     const agent = await prisma.agent.findUnique({ where: { slug } });
     if (!agent) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+      return notFound("Agent not found");
     }
 
     if (agent.status !== "APPROVED" && agent.creatorId !== session.user.id) {
-      return NextResponse.json({ error: "This agent is not available for execution" }, { status: 403 });
+      return forbidden("This agent is not available for execution");
     }
 
     const isTestMode = body._test === true && agent.creatorId === session.user.id;
     const cost = agent.pricingType === "FREE" ? 0 : agent.creditsPerRun;
 
+    // Enforce max 5 sandbox test runs per agent per creator
+    if (isTestMode) {
+      const testKey = `sandbox:${agent.id}:${session.user.id}`;
+      let testCount: number;
+      if (redis && redis.status === "ready") {
+        try {
+          testCount = parseInt((await redis.get(testKey)) || "0", 10);
+        } catch {
+          testCount = 0;
+        }
+      } else {
+        testCount = 0;
+      }
+      if (testCount >= 5) {
+        return forbidden("Sandbox test limit reached (max 5). Submit for review to continue.");
+      }
+      // Increment test count (fire-and-forget)
+      const r = redis;
+      if (r && r.status === "ready") {
+        r.incr(testKey).then(() => r.expire(testKey, 86400)).catch(() => {});
+      }
+    }
+
     if (!isTestMode && cost > 0) {
       const wallet = await prisma.wallet.findUnique({ where: { userId: session.user.id }, select: { balance: true } });
       if (!wallet || wallet.balance < cost) {
-        return NextResponse.json({ error: "Insufficient credits. Please top up your wallet." }, { status: 402 });
+        return paymentRequired("Insufficient credits. Please top up your wallet.");
       }
     }
 
@@ -182,7 +214,7 @@ export async function POST(
     const routes = getRoutesForCategory(agentCategory);
 
     if (routes.length === 0) {
-      return NextResponse.json({ error: "No AI providers configured" }, { status: 503 });
+      return NextResponse.json({ error: "No AI providers configured", code: "NO_PROVIDERS" }, { status: 503 });
     }
 
     // Build conversation history
@@ -258,6 +290,10 @@ export async function POST(
                     referenceId: executionId,
                   },
                 });
+                await tx.agent.update({
+                  where: { id: agent.id },
+                  data: { totalRuns: { increment: 1 } },
+                });
               });
             } catch (deductErr) {
               logger.error("credit deduction failed after execution", { userId: session.user.id, cost, error: deductErr });
@@ -265,6 +301,18 @@ export async function POST(
           }
 
           await creditCreator(agent.creatorId, cost, executionId);
+
+          // Increment total runs for free agents
+          if (cost <= 0) {
+            try {
+              await prisma.agent.update({
+                where: { id: agent.id },
+                data: { totalRuns: { increment: 1 } },
+              });
+            } catch {
+              // silently fail
+            }
+          }
 
           // Save conversation history
           await appendHistory(sessionId, { role: "user", content: safeMessage });
@@ -308,6 +356,6 @@ export async function POST(
     });
   } catch (error) {
     logger.error("execute error", { error: String(error) });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return serverError();
   }
 }

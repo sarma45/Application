@@ -62,9 +62,36 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const currentAgent = await prisma.agent.findUnique({
+      where: { id: agent.id },
+      select: { name: true, category: true, systemPrompt: true, pricingType: true, creditsPerRun: true, toolsConfig: true },
+    });
+
+    if (!currentAgent) {
+      return NextResponse.json({ error: "Agent not found", code: "NOT_FOUND" }, { status: 404 });
+    }
+
     const updated = await prisma.agent.update({
       where: { id: agent.id },
       data: parsed.data,
+    });
+
+    // Create version snapshot
+    const lastVersion = await prisma.agentVersion.findFirst({
+      where: { agentId: agent.id },
+      orderBy: { createdAt: "desc" },
+      select: { version: true },
+    });
+    const nextVersion = lastVersion
+      ? `${parseInt(lastVersion.version.split(".")[0] || "0") + 1}.0.0`
+      : "1.0.0";
+    await prisma.agentVersion.create({
+      data: {
+        agentId: agent.id,
+        version: nextVersion,
+        changelog: "Updated agent configuration",
+        config: currentAgent,
+      },
     });
 
     await cacheDel(`agent:${slug}`);

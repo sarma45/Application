@@ -137,7 +137,7 @@ export default function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1.2 }}
-          className="mt-16 flex items-center justify-center gap-8 md:gap-16 text-zinc-600"
+          className="mt-12 md:mt-16 grid grid-cols-2 md:flex md:items-center md:justify-center gap-6 md:gap-16 text-zinc-600"
         >
           {[
             { label: "Active Agents", value: "500+" },

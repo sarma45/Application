@@ -26,15 +26,15 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-theme mb-3 font-[family-name:var(--font-neural)]">Resources</h3>
             <ul className="space-y-2">
               <li><Link href="/api-docs" className="text-sm text-secondary hover:text-stream-400 transition-colors">API Docs</Link></li>
-              <li><span className="text-sm text-muted">Status</span></li>
+              <li><Link href="/status" className="text-sm text-secondary hover:text-stream-400 transition-colors">Status</Link></li>
               <li><span className="text-sm text-muted">Changelog</span></li>
             </ul>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-theme mb-3 font-[family-name:var(--font-neural)]">Legal</h3>
             <ul className="space-y-2">
-              <li><span className="text-sm text-muted">Terms of Service</span></li>
-              <li><span className="text-sm text-muted">Privacy Policy</span></li>
+              <li><Link href="/terms" className="text-sm text-secondary hover:text-stream-400 transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="text-sm text-secondary hover:text-stream-400 transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>

@@ -35,11 +35,11 @@ export default async function HomePage() {
   }
 
   return (
-    <div>
+    <div className="overflow-x-hidden">
       <section className="relative overflow-hidden border-b border-light min-h-[90vh] flex items-center">
         <div className="absolute inset-0 bg-gradient-radial from-purple-900/10 via-transparent to-transparent" />
         <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-          <svg className="absolute -top-40 -right-40 w-[600px] h-[600px] opacity-10 animate-float" viewBox="0 0 150 100">
+          <svg className="absolute -top-40 -right-40 w-[300px] md:w-[600px] h-[300px] md:h-[600px] opacity-10 animate-float" viewBox="0 0 150 100">
             <path d={morphingBlobs[0]} fill="url(#neuralGrad)" />
             <defs>
               <linearGradient id="neuralGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -48,7 +48,7 @@ export default async function HomePage() {
               </linearGradient>
             </defs>
           </svg>
-          <svg className="absolute -bottom-20 -left-20 w-[400px] h-[400px] opacity-10 animate-float" style={{ animationDelay: "-2s" }} viewBox="0 0 150 100">
+          <svg className="absolute -bottom-20 -left-20 w-[200px] md:w-[400px] h-[200px] md:h-[400px] opacity-10 animate-float" style={{ animationDelay: "-2s" }} viewBox="0 0 150 100">
             <path d={morphingBlobs[1]} fill="url(#neuralGrad2)" />
             <defs>
               <linearGradient id="neuralGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -74,7 +74,7 @@ export default async function HomePage() {
               The unified hub where creators publish agents, developers build tools,
               and businesses deploy governed AI workflows.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-4">
+            <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
               <Link href="/agents">
                 <Button size="lg" className="neural-glow">
                   Explore Agents
@@ -145,7 +145,7 @@ export default async function HomePage() {
                   <h3 className="font-semibold text-theme group-hover:neural-text transition-all duration-300">
                     {agent.name}
                   </h3>
-                  <p className="mt-1 text-sm text-secondary line-clamp-2">{agent.systemPrompt?.slice(0, 100)}</p>
+                  <p className="mt-1 text-sm text-secondary line-clamp-2">{agent.description || agent.systemPrompt?.slice(0, 100)}</p>
                   <div className="mt-4 flex items-center justify-between text-xs text-muted">
                     <span>by {agent.creator.username || "anonymous"}</span>
                     {agent.pricingType === "FREE" ? (

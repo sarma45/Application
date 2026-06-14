@@ -169,6 +169,16 @@ export function NeuralBackground({ variant = "default" }: NeuralBackgroundProps)
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMouseMove);
+      nodeGeo.dispose();
+      nodeMat.dispose();
+      lineMat.dispose();
+      lineGeo3.dispose();
+      morphMeshes.forEach((mesh) => {
+        mesh.geometry.dispose();
+        const mat = mesh.material;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat.dispose();
+      });
       renderer.dispose();
       scene.traverse((child) => {
         if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {

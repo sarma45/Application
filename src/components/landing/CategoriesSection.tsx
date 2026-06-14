@@ -68,7 +68,7 @@ export default function CategoriesSection() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="relative py-32">
+    <section ref={ref} className="relative py-20 md:py-32">
       <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/50 via-transparent to-zinc-950/50 pointer-events-none" />
 
       <div className="container-main relative z-10">
@@ -76,12 +76,12 @@ export default function CategoriesSection() {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-center mb-12 md:mb-16"
         >
           <span className="inline-block px-3 py-1 text-xs font-medium tracking-wider text-emerald-300 uppercase bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-4">
             Agent Categories
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white">
+          <h2 className="text-3xl md:text-5xl font-bold text-white">
             Specialized AI for{" "}
             <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               every task
@@ -102,12 +102,12 @@ export default function CategoriesSection() {
             >
               <Link href={`/agents?category=${cat.slug}`}>
                 <div
-                  className={`group relative p-8 rounded-2xl border border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm transition-all duration-500 hover:scale-[1.01] hover:border-zinc-700/50 ${cat.glow} hover:shadow-xl`}
+                  className={`group relative p-5 md:p-8 rounded-2xl border border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm transition-all duration-500 hover:scale-[1.01] hover:border-zinc-700/50 ${cat.glow} hover:shadow-xl`}
                 >
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                  <div className="relative flex items-start gap-5">
-                    <div className={`shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br ${cat.gradient} p-3.5 text-white shadow-lg`}>
+                  <div className="relative flex items-start gap-4 md:gap-5">
+                    <div className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${cat.gradient} p-2 md:p-3 text-white shadow-lg`}>
                       {cat.icon}
                     </div>
 

@@ -54,8 +54,8 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">Notifications</h2>
-          <p className="text-sm text-zinc-500">Stay updated on your agents and earnings</p>
+          <h2 className="text-xl font-bold text-theme">Notifications</h2>
+          <p className="text-sm text-secondary">Stay updated on your agents and earnings</p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All</Button>
@@ -66,12 +66,12 @@ export default function NotificationsPage() {
 
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 rounded-xl bg-zinc-800/50 animate-pulse" />)}
+          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 rounded-xl bg-card animate-pulse" />)}
         </div>
       ) : notifications.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-zinc-500 text-sm">No notifications</p>
+            <p className="text-secondary text-sm">No notifications</p>
           </CardContent>
         </Card>
       ) : (
@@ -81,7 +81,7 @@ export default function NotificationsPage() {
               key={n.id}
               className={`flex items-start gap-4 p-4 rounded-xl border transition-colors cursor-pointer ${
                 n.read
-                  ? "border-zinc-800/50 bg-zinc-900/20"
+                  ? "border-theme bg-card"
                   : "border-purple-500/20 bg-purple-500/5"
               }`}
               onClick={() => { if (!n.read) markRead(n.id); if (n.link) window.location.href = n.link; }}
@@ -89,13 +89,13 @@ export default function NotificationsPage() {
               <span className="text-xl shrink-0">{typeIcons[n.type] || "🔔"}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={`text-sm font-medium ${n.read ? "text-zinc-400" : "text-zinc-200"}`}>
+                  <p className={`text-sm font-medium ${n.read ? "text-secondary" : "text-theme"}`}>
                     {n.title}
                   </p>
                   {!n.read && <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />}
                 </div>
-                {n.body && <p className="text-xs text-zinc-500 mt-1">{n.body}</p>}
-                <p className="text-[11px] text-zinc-600 mt-1">
+                {n.body && <p className="text-xs text-secondary mt-1">{n.body}</p>}
+                <p className="text-[11px] text-muted mt-1">
                   {new Date(n.createdAt).toLocaleString()}
                 </p>
               </div>

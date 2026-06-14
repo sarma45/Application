@@ -6,18 +6,19 @@ import { slugify } from "@/lib/utils";
 import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from "@/lib/redis";
 import { createAgentSchema, listAgentsSchema } from "@/lib/validations";
 import { generateEmbedding } from "@/lib/ai/embeddings";
+import { unauthorized, serverError } from "@/lib/api-helpers";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const dbUser = await prisma.user.findUnique({ where: { id: session.user.id }, select: { isActive: true, role: true } });
   if (!dbUser?.isActive) {
-    return NextResponse.json({ error: "Please verify your email before publishing agents" }, { status: 403 });
+    return NextResponse.json({ error: "Please verify your email before publishing agents", code: "EMAIL_NOT_VERIFIED" }, { status: 403 });
   }
 
   if (!["CREATOR", "MODERATOR", "ADMIN", "ENTERPRISE"].includes(dbUser.role)) {
@@ -48,8 +49,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, category, systemPrompt, pricingType, creditsPerRun, slug: customSlug } = parsed.data;
-    const baseSlug = customSlug || slugify(name);
+    const { name, category, systemPrompt, pricingType, creditsPerRun } = parsed.data;
+    const baseSlug = slugify(name);
 
     let agent;
     try {
@@ -68,11 +69,12 @@ export async function POST(req: Request) {
       });
     } catch (err: any) {
       if (err?.code === "P2002" && err?.meta?.target?.includes("slug")) {
+        const suffix = crypto.randomUUID().slice(0, 8);
         agent = await prisma.agent.create({
           data: {
             creatorId: session.user.id,
             name,
-            slug: `${baseSlug}-${Date.now()}`,
+            slug: `${baseSlug}-${suffix}`,
             category,
             status: "DRAFT",
             systemPrompt: systemPrompt || "",
@@ -107,7 +109,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, slug: agent.slug, id: agent.id }, { status: 201 });
   } catch (error) {
     console.error("create agent error", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return serverError();
   }
 }
 
@@ -117,6 +119,7 @@ export async function GET(req: Request) {
     category: searchParams.get("category"),
     q: searchParams.get("q"),
     mine: searchParams.get("mine"),
+    sort: searchParams.get("sort"),
   });
 
   const cursor = searchParams.get("cursor");
@@ -144,35 +147,108 @@ export async function GET(req: Request) {
   } else {
     where.status = "APPROVED";
     if (params.category && params.category !== "ALL") where.category = params.category;
-    if (params.q) {
+  }
+
+  // Semantic search via pgvector
+  let useSemanticSearch = false;
+  let queryEmbedding: number[] = [];
+  if (params.q && params.mine !== "true") {
+    queryEmbedding = await generateEmbedding(params.q);
+    if (queryEmbedding.length > 0) {
+      useSemanticSearch = true;
+    }
+  }
+
+  let agents: any[];
+  if (useSemanticSearch) {
+    const vectorStr = `[${queryEmbedding.join(",")}]`;
+    const categoryFilter = params.category && params.category !== "ALL"
+      ? prisma.$queryRaw`AND category = ${params.category}::text`
+      : prisma.$queryRaw``;
+    agents = await prisma.$queryRaw`
+      SELECT id, name, slug, category, "pricingType", "creditsPerRun", "totalRuns", "avgRating", "isFeatured", status, "createdAt"
+      FROM "Agent"
+      WHERE status = 'APPROVED'::text
+      ${categoryFilter}
+      ORDER BY embedding <=> ${vectorStr}::vector
+      LIMIT ${limit + 1}
+    `;
+    agents = (agents as any[]).map((a: any) => ({
+      ...a,
+      id: String(a.id),
+      creator: null,
+    }));
+  } else {
+    if (params.q && params.mine !== "true") {
       where.OR = [
         { name: { contains: params.q, mode: "insensitive" } },
         { description: { contains: params.q, mode: "insensitive" } },
       ];
     }
-  }
 
-  const agents = await prisma.agent.findMany({
-    where: where as any,
-    orderBy: { totalRuns: "desc" },
-    cursor: cursor ? { id: cursor } : undefined,
-    skip: cursor ? 1 : 0,
-    take: limit + 1,
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      category: true,
-      pricingType: true,
-      creditsPerRun: true,
-      totalRuns: true,
-      avgRating: true,
-      isFeatured: true,
-      status: true,
-      createdAt: true,
-      creator: { select: { username: true, email: true } },
-    },
-  });
+    let orderBy: any;
+    if (params.sort === "newest") {
+      orderBy = { createdAt: "desc" };
+    } else if (params.sort === "trending") {
+      orderBy = { totalRuns: "desc" };
+    } else {
+      orderBy = { totalRuns: "desc" };
+    }
+
+    // For trending, prefer recent executions
+    if (params.sort === "trending") {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const found = await prisma.agent.findMany({
+        where: where as any,
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
+        take: limit + 1,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: true,
+          pricingType: true,
+          creditsPerRun: true,
+          totalRuns: true,
+          avgRating: true,
+          isFeatured: true,
+          status: true,
+          createdAt: true,
+          creator: { select: { username: true, email: true } },
+          _count: {
+            select: {
+              executions: { where: { createdAt: { gte: sevenDaysAgo } } },
+            },
+          },
+        },
+      });
+      agents = (found as any[]).sort((a, b) => b._count.executions - a._count.executions);
+    } else {
+      const found = await prisma.agent.findMany({
+        where: where as any,
+        orderBy,
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
+        take: limit + 1,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: true,
+          pricingType: true,
+          creditsPerRun: true,
+          totalRuns: true,
+          avgRating: true,
+          isFeatured: true,
+          status: true,
+          createdAt: true,
+          creator: { select: { username: true, email: true } },
+        },
+      });
+      agents = found;
+    }
+  }
 
   const hasMore = agents.length > limit;
   const items = hasMore ? agents.slice(0, limit) : agents;

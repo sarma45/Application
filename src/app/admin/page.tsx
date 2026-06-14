@@ -6,15 +6,97 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ModerationActions } from "@/components/admin/moderation-actions";
 import { FeaturedToggle } from "@/components/admin/featured-toggle";
+import { Suspense } from "react";
 
-export default async function AdminPage() {
+interface PageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+async function UserList({ search }: { search: string }) {
+  const where: Record<string, unknown> = {};
+  if (search) {
+    where.OR = [
+      { email: { contains: search, mode: "insensitive" as const } },
+      { username: { contains: search, mode: "insensitive" as const } },
+    ];
+  }
+
+  const users = await prisma.user.findMany({
+    where: where as any,
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      role: true,
+      plan: true,
+      isActive: true,
+      createdAt: true,
+    },
+  });
+
+  return (
+    <div className="space-y-2 max-h-96 overflow-y-auto">
+      {users.length === 0 ? (
+        <p className="text-sm text-secondary">No users found</p>
+      ) : (
+        users.map((user) => (
+          <div key={user.id} className="flex items-center justify-between py-1.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-theme truncate">{user.email}</p>
+              <p className="text-xs text-muted">
+                {user.role} &middot; {user.plan}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              <Badge variant={user.isActive ? "success" : "danger"}>
+                {user.isActive ? "Active" : "Inactive"}
+              </Badge>
+              {user.role !== "ADMIN" && (
+                <form action={`/api/admin/users/${user.id}/suspend`} method="POST">
+                  <button
+                    type="submit"
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                      user.isActive
+                        ? "text-red-400 hover:bg-red-400/10"
+                        : "text-green-400 hover:bg-green-400/10"
+                    }`}
+                  >
+                    {user.isActive ? "Suspend" : "Restore"}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+export default async function AdminPage(props: PageProps) {
   const session = await requireRole("ADMIN", "MODERATOR");
+  const searchParams = await props.searchParams;
+  const search = searchParams.q || "";
 
-  const [pendingAgents, allUsers, recentAuditLogs, featuredAgents] = await Promise.all([
-    prisma.agent.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, include: { creator: { select: { email: true } } } }),
-    prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
-    prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { actor: { select: { email: true } } } }),
-    prisma.agent.findMany({ where: { isFeatured: true }, orderBy: { totalRuns: "desc" }, take: 10, include: { creator: { select: { email: true } } } }),
+  const [pendingAgents, recentAuditLogs, featuredAgents] = await Promise.all([
+    prisma.agent.findMany({
+      where: { status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+      include: { creator: { select: { email: true } } },
+    }),
+    prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { actor: { select: { email: true } } },
+    }),
+    prisma.agent.findMany({
+      where: { isFeatured: true },
+      orderBy: { totalRuns: "desc" },
+      take: 10,
+      include: { creator: { select: { email: true } } },
+    }),
   ]);
 
   return (
@@ -87,24 +169,21 @@ export default async function AdminPage() {
         <div className="space-y-6">
           <Card>
             <CardContent className="p-5">
-              <h2 className="text-lg font-semibold text-theme mb-4">
-                Users ({allUsers.length})
-              </h2>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {allUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between py-1.5">
-                    <div className="min-w-0">
-                      <p className="text-sm text-theme truncate">{user.email}</p>
-                      <p className="text-xs text-muted">
-                        {user.role} &middot; {user.plan}
-                      </p>
-                    </div>
-                    <Badge variant={user.isActive ? "success" : "danger"}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-theme">Users</h2>
               </div>
+              <form className="mb-4" method="GET">
+                <input
+                  type="text"
+                  name="q"
+                  defaultValue={search}
+                  placeholder="Search by email or username..."
+                  className="flex w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </form>
+              <Suspense fallback={<p className="text-sm text-secondary">Loading...</p>}>
+                <UserList search={search} />
+              </Suspense>
             </CardContent>
           </Card>
 

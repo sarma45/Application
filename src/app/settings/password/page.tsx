@@ -83,6 +83,7 @@ export default function ChangePasswordPage() {
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
             <Input
@@ -90,6 +91,7 @@ export default function ChangePasswordPage() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
               required
               placeholder="Min 8 characters"
             />
@@ -98,6 +100,7 @@ export default function ChangePasswordPage() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
               required
             />
             {error && <p className="text-sm text-red-400">{error}</p>}

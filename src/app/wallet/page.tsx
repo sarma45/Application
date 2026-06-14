@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -5,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { formatDate, formatCredits } from "@/lib/utils";
 import { CREDIT_PACKAGES } from "@/lib/stripe";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Wallet",
+  description: "Manage your AIVerse credits and transactions",
+};
 
 const creditPackages = Object.entries(CREDIT_PACKAGES).map(([credits, price]) => ({
   credits: Number(credits),

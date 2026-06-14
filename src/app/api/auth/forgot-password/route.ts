@@ -3,14 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const rl = await rateLimit(req, "auth");
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests. Please slow down.", code: "RATE_LIMITED" }, { status: 429 });
+  }
+
   try {
     const { email } = await req.json();
     if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email is required", code: "BAD_REQUEST" }, { status: 400 });
     }
 
     const normalizedEmail = email.trim().toLowerCase();

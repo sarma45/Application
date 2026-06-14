@@ -1,7 +1,13 @@
+import { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DeleteAccountButton } from "./delete-account-button";
+
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Manage your AIVerse account settings",
+};
 
 export default async function SettingsPage() {
   const session = await requireAuth();

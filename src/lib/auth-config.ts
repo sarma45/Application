@@ -97,10 +97,17 @@ export const authOptions: NextAuthOptions = {
             update: {},
             create: { userId: newUser.id, balance: 100, lifetimeEarned: 100, lifetimeSpent: 0 },
           });
-        } else if (!existingUser.isActive) {
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: { isActive: true },
+        } else {
+          if (!existingUser.isActive) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { isActive: true },
+            });
+          }
+          await prisma.wallet.upsert({
+            where: { userId: existingUser.id },
+            update: {},
+            create: { userId: existingUser.id, balance: 100, lifetimeEarned: 100, lifetimeSpent: 0 },
           });
         }
       }

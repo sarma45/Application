@@ -80,6 +80,7 @@ export default function ForgotPasswordPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
             />
             {error && <p className="text-sm text-red-400">{error}</p>}

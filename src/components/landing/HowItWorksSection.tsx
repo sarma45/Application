@@ -35,7 +35,7 @@ export default function HowItWorksSection() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="relative py-32 overflow-hidden">
+    <section ref={ref} className="relative py-20 md:py-32 overflow-hidden">
       <div className="absolute inset-0">
         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-purple-500/20 to-transparent hidden md:block" />
       </div>
@@ -45,12 +45,12 @@ export default function HowItWorksSection() {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
-          className="text-center mb-20"
+          className="text-center mb-12 md:mb-20"
         >
           <span className="inline-block px-3 py-1 text-xs font-medium tracking-wider text-cyan-300 uppercase bg-cyan-500/10 border border-cyan-500/20 rounded-full mb-4">
             How It Works
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white">
+          <h2 className="text-3xl md:text-5xl font-bold text-white">
             From discovery to{" "}
             <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
               revenue
@@ -68,20 +68,20 @@ export default function HowItWorksSection() {
               initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ duration: 0.7, delay: 0.2 * i }}
-              className={`relative flex flex-col ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"} items-center gap-8 md:gap-16`}
+              className={`relative flex flex-col ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"} items-center gap-6 md:gap-16`}
             >
               <div className="flex-1">
-                <div className={`inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r ${step.gradient} bg-opacity-10 border border-white/10 mb-4`}>
+                <div className={`inline-flex items-center gap-3 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-gradient-to-r ${step.gradient} bg-opacity-10 border border-white/10 mb-4`}>
                   <span className="text-xs font-bold text-white">{step.number}</span>
                 </div>
                 <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">{step.title}</h3>
                 <p className="text-zinc-400 leading-relaxed max-w-lg">{step.desc}</p>
               </div>
 
-              <div className="shrink-0">
-                <div className={`relative w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-gradient-to-br ${step.gradient} p-0.5`}>
-                  <div className="w-full h-full rounded-3xl bg-zinc-950 flex items-center justify-center">
-                    <span className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
+                  <div className="shrink-0">
+                <div className={`relative w-20 h-20 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-gradient-to-br ${step.gradient} p-0.5`}>
+                  <div className="w-full h-full rounded-2xl md:rounded-3xl bg-zinc-950 flex items-center justify-center">
+                    <span className="text-2xl md:text-4xl font-bold bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
                       {step.number}
                     </span>
                   </div>

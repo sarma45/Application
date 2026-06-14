@@ -72,9 +72,10 @@ export default function RegisterPage() {
         </CardHeader>
         <div className="p-6 pt-0">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input id="username" name="username" label="Username" type="text" placeholder="your-username" />
-            <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" required />
-            <Input id="password" name="password" label="Password" type="password" placeholder="Create a password" required />
+            <Input id="username" name="username" label="Username" type="text" placeholder="your-username" autoComplete="username" />
+            <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" autoComplete="email" required />
+            <Input id="password" name="password" label="Password" type="password" placeholder="Create a password" autoComplete="new-password" required />
+            <p className="text-xs text-muted mt-1">Password must be at least 8 characters with uppercase, lowercase, and a digit</p>
             {error && <p className="text-sm text-red-400">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">
               Create account

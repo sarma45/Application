@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { formatCredits, formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Creator Analytics",
+  description: "Track your AI agent performance and earnings on AIVerse",
+};
 
 export default async function AnalyticsPage() {
   const session = await requireAuth();

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { AGENT_CREDITS_PER_RUN_MAX } from "@/lib/limits";
 
 const categories = ["CHAT", "CODE", "DATA", "WORKFLOW"];
@@ -28,6 +29,7 @@ export default function EditAgentPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   useEffect(() => {
     fetch(`/api/agents/${slug}`)
@@ -79,7 +81,7 @@ export default function EditAgentPage() {
   }
 
   async function handleArchive() {
-    if (!confirm("Are you sure you want to archive this agent? Users will no longer be able to run it.")) return;
+    setShowArchiveConfirm(false);
     setSaving(true);
     try {
       const res = await fetch(`/api/agents/${slug}`, {
@@ -100,7 +102,27 @@ export default function EditAgentPage() {
     setSaving(false);
   }
 
-  if (loading) return <div className="container-main py-8"><p className="text-secondary">Loading...</p></div>;
+  if (loading) return (
+    <div className="container-main py-8 max-w-2xl">
+      <div className="space-y-5 animate-pulse">
+        <div className="skeleton h-7 w-40 rounded" />
+        <div className="glass glass-card p-6 space-y-5">
+          <div className="space-y-2">
+            <div className="skeleton h-4 w-16" />
+            <div className="skeleton h-10 w-full rounded-lg" />
+          </div>
+          <div className="space-y-2">
+            <div className="skeleton h-4 w-20" />
+            <div className="skeleton h-10 w-full rounded-lg" />
+          </div>
+          <div className="space-y-2">
+            <div className="skeleton h-4 w-24" />
+            <div className="skeleton h-32 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (!agent) return <div className="container-main py-8"><p className="text-red-400">Agent not found</p></div>;
 
   return (
@@ -190,9 +212,18 @@ export default function EditAgentPage() {
           <p className="text-sm text-secondary mb-4">
             Archiving will prevent users from running this agent. You can unarchive it later.
           </p>
-          <Button variant="destructive" onClick={handleArchive} loading={saving}>
+          <Button variant="destructive" onClick={() => setShowArchiveConfirm(true)} loading={saving}>
             Archive Agent
           </Button>
+          <ConfirmModal
+            open={showArchiveConfirm}
+            onClose={() => setShowArchiveConfirm(false)}
+            onConfirm={handleArchive}
+            title="Archive Agent?"
+            message="Are you sure you want to archive this agent? Users will no longer be able to run it. You can unarchive it later."
+            confirmLabel="Archive"
+            variant="warning"
+          />
         </CardContent>
       </Card>
     </div>

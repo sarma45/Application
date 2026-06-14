@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SearchBar } from "@/components/agent/search-bar";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
+
+export const metadata: Metadata = {
+  title: "Explore Agents",
+  description: "Browse and discover AI agents on AIVerse marketplace",
+};
 
 const categories = ["ALL", "CHAT", "CODE", "DATA", "WORKFLOW"];
 
@@ -92,7 +98,7 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
                 <h3 className="font-semibold text-theme group-hover:neural-text transition-all duration-300">
                   {agent.name}
                 </h3>
-                <p className="mt-1 text-sm text-secondary line-clamp-2">{agent.systemPrompt?.slice(0, 100)}</p>
+                  <p className="mt-1 text-sm text-secondary line-clamp-2">{agent.description || agent.systemPrompt?.slice(0, 100)}</p>
                 <div className="mt-4 flex items-center justify-between text-xs text-muted">
                   <span>by {agent.creator.username || "anonymous"}</span>
                   {agent.pricingType === "FREE" ? (

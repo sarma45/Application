@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -5,6 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatCredits } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Manage your AIVerse agents, credits, and activity",
+};
 
 export default async function DashboardPage() {
   const session = await requireAuth();

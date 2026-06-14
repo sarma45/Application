@@ -138,7 +138,7 @@ export async function recordViolation(userId: string, _reason: string): Promise<
     : getMemoryStore(userId);
 
   trust.violations += 1;
-  trust.score = Math.max(0, trust.score - 15 * trust.violations);
+  trust.score = Math.max(0, trust.score - 15);
   trust.lastViolationAt = new Date().toISOString();
 
   if (redis && redis.status === "ready") {

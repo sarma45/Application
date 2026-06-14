@@ -21,7 +21,6 @@ export const registerSchema = z.object({
 
 export const createAgentSchema = z.object({
   name: z.string().min(1).max(200),
-  slug: z.string().max(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens").optional(),
   category: z.enum(["CHAT", "CODE", "DATA", "WORKFLOW"]),
   systemPrompt: z.string().max(AGENT_SYSTEM_PROMPT_MAX_LENGTH).optional().default(""),
   pricingType: z.enum(["FREE", "PAID"]).optional().default("FREE"),
@@ -41,6 +40,7 @@ export const listAgentsSchema = z.object({
   category: z.string().optional(),
   q: z.string().max(200).optional(),
   mine: z.string().optional(),
+  sort: z.enum(["popular", "trending", "newest"]).optional().default("popular"),
 });
 
 export const executeSchema = z.object({

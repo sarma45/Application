@@ -1,14 +1,11 @@
 import Redis from "ioredis";
 
-const globalForRedis = globalThis as unknown as { redis: Redis | undefined };
+const globalForRedis = globalThis as unknown as { redis: Redis | null | undefined };
 
-function createRedis(): Redis {
+function createRedis(): Redis | null {
   const url = process.env.REDIS_URL;
   if (!url) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("REDIS_URL is required in production");
-    }
-    return null as unknown as Redis;
+    return null;
   }
 
   const client = new Redis(url, {
@@ -27,20 +24,17 @@ function createRedis(): Redis {
   return client;
 }
 
-export const redis = globalForRedis.redis ?? createRedis();
+export const redis: Redis | null = globalForRedis.redis ?? createRedis();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForRedis.redis = redis;
-}
-
-function isAvailable(): boolean {
-  return !!(redis && redis.status === "ready");
+  globalForRedis.redis = redis ?? undefined;
 }
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
-  if (!isAvailable()) return null;
+  const r = redis;
+  if (!r || r.status !== "ready") return null;
   try {
-    const data = await redis.get(key);
+    const data = await r.get(key);
     return data ? JSON.parse(data) : null;
   } catch {
     return null;
@@ -48,18 +42,20 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 }
 
 export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
-  if (!isAvailable()) return;
+  const r = redis;
+  if (!r || r.status !== "ready") return;
   try {
-    await redis.setex(key, ttlSeconds, JSON.stringify(value));
+    await r.setex(key, ttlSeconds, JSON.stringify(value));
   } catch {
     // silently fail
   }
 }
 
 export async function cacheDel(key: string): Promise<void> {
-  if (!isAvailable()) return;
+  const r = redis;
+  if (!r || r.status !== "ready") return;
   try {
-    await redis.del(key);
+    await r.del(key);
   } catch {
     // silently fail
   }

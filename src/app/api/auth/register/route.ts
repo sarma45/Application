@@ -5,22 +5,28 @@ import { registerSchema } from "@/lib/validations";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const rl = await rateLimit(request, "auth");
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests. Please slow down.", code: "RATE_LIMITED" }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json({ error: "Validation failed", code: "BAD_REQUEST", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
     const { email, password, username } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json({ error: "User already exists" }, { status: 409 });
+      return NextResponse.json({ error: "User already exists", code: "CONFLICT" }, { status: 409 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -56,6 +62,6 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     logger.error("Register error", { error: String(error) });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { stripe, CREDIT_PACKAGES, getPricePerCredit } from "@/lib/stripe";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const rl = await rateLimit(req, "api");
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests. Please slow down.", code: "RATE_LIMITED" }, { status: 429 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
   }
 
   try {
@@ -16,11 +22,11 @@ export async function POST(req: Request) {
     const credits = parseInt(formData.get("credits") as string);
 
     if (!credits || !CREDIT_PACKAGES[credits]) {
-      return NextResponse.json({ error: "Invalid credit package" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid credit package", code: "BAD_REQUEST" }, { status: 400 });
     }
 
     if (!process.env.STRIPE_SECRET) {
-      return NextResponse.json({ error: "Payments not configured" }, { status: 503 });
+      return NextResponse.json({ error: "Payments not configured", code: "SERVICE_UNAVAILABLE" }, { status: 503 });
     }
 
     const price = getPricePerCredit(credits);

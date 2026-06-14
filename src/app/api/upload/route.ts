@@ -4,10 +4,16 @@ import { authOptions } from "@/lib/auth-config";
 import { uploadFile } from "@/lib/storage";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const PLAN_LIMITS: Record<string, number> = {
+  FREE: 10 * 1024 * 1024,
+  PRO: 50 * 1024 * 1024,
+  ENTERPRISE: 100 * 1024 * 1024,
+};
+
 const ALLOWED_TYPES = [
   "text/csv",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -28,10 +34,19 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
   return signatures.some(sig => sig.every((byte, i) => buffer[i] === byte));
 }
 
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 255);
+}
+
 export async function POST(req: Request) {
+  const rl = await rateLimit(req, "api");
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests. Please slow down.", code: "RATE_LIMITED" }, { status: 429 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
   }
 
   try {
@@ -39,20 +54,32 @@ export async function POST(req: Request) {
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json({ error: "No file provided", code: "BAD_REQUEST" }, { status: 400 });
+    }
+
+    if (file.size === 0) {
+      return NextResponse.json({ error: "File is empty", code: "BAD_REQUEST" }, { status: 400 });
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "File type not supported. Supported: CSV, XLSX, PDF, DOCX, TXT" },
+        { error: "File type not supported. Supported: CSV, XLSX, PDF, DOCX, TXT", code: "BAD_REQUEST" },
         { status: 400 }
       );
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { plan: true },
+    });
+    const plan = user?.plan || "FREE";
+    const maxFileSize = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+
+    if (file.size > maxFileSize) {
+      const maxMB = Math.floor(maxFileSize / (1024 * 1024));
       return NextResponse.json(
-        { error: "File too large. Maximum size is 10MB" },
-        { status: 400 }
+        { error: `File too large. ${plan} plan limit is ${maxMB}MB.`, code: "PAYLOAD_TOO_LARGE" },
+        { status: 413 }
       );
     }
 
@@ -60,17 +87,18 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
 
     if (!validateMagicBytes(buffer, file.type)) {
-      return NextResponse.json({ error: "File content does not match declared type" }, { status: 400 });
+      return NextResponse.json({ error: "File content does not match declared type", code: "BAD_REQUEST" }, { status: 400 });
     }
 
-    const key = `uploads/${session.user.id}/${Date.now()}-${file.name}`;
+    const safeName = sanitizeFileName(file.name);
+    const key = `uploads/${session.user.id}/${Date.now()}-${safeName}`;
 
     const url = await uploadFile(key, buffer, file.type);
 
     await prisma.file.create({
       data: {
         userId: session.user.id,
-        fileName: file.name,
+        fileName: safeName,
         fileType: file.type,
         fileSize: file.size,
         storageKey: key,
@@ -80,7 +108,7 @@ export async function POST(req: Request) {
 
     logger.info("File uploaded", {
       userId: session.user.id,
-      fileName: file.name,
+      fileName: safeName,
       fileType: file.type,
       fileSize: file.size,
       key,
@@ -88,13 +116,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      fileName: file.name,
+      fileName: safeName,
       fileType: file.type,
       fileSize: file.size,
       url,
     });
   } catch (error) {
     logger.error("File upload error", { error: String(error) });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

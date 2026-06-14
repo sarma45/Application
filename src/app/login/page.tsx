@@ -95,8 +95,8 @@ export default function LoginPage() {
         </CardHeader>
         <div className="p-6 pt-0">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" required />
-            <Input id="password" name="password" label="Password" type="password" placeholder="Enter your password" required />
+            <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" autoComplete="email" required />
+            <Input id="password" name="password" label="Password" type="password" placeholder="Enter your password" autoComplete="current-password" required />
             <div ref={turnstileContainerRef} className="flex justify-center" />
             {error && <p className="text-sm text-red-400">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">

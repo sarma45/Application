@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     const checkoutSession = event.data.object as any;
     const userId = checkoutSession.metadata?.userId as string;
     const credits = parseInt(checkoutSession.metadata?.credits ?? "0");
+    const amountUsd = (checkoutSession.amount_total ?? 0) / 100;
 
     if (!userId || !credits) {
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
           userId,
           provider: "STRIPE",
           providerPaymentId: checkoutSession.id,
-          amountUsd: credits,
+          amountUsd,
           creditsGranted: credits,
           status: "COMPLETED",
         },

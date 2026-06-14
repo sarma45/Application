@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ function ThemeToggle() {
 
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -46,6 +47,39 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
     }
     return () => { document.body.style.overflow = ""; };
   }, [open]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && menuRef.current) {
+        const focusable = menuRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last?.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first?.focus();
+          }
+        }
+      }
+    }
+    if (open) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
 
   useEffect(() => {
     onClose();
@@ -61,6 +95,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
         aria-hidden="true"
       />
       <div
+        ref={menuRef}
         className={`fixed top-0 right-0 z-50 h-full w-64 glass-strong border-l border-theme transition-transform duration-300 md:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
@@ -178,7 +213,7 @@ export function Navbar({ session }: { session: any }) {
           )}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg text-secondary hover:text-theme hover:bg-white/5 transition-colors"
+            className="md:hidden flex h-11 w-11 items-center justify-center rounded-lg text-secondary hover:text-theme hover:bg-white/5 transition-colors"
             aria-label="Open menu"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
