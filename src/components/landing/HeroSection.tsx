@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, _useScroll, _useTransform, _useSpring } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -11,31 +11,31 @@ const floatingWords = ["Deploy", "Monetize", "Discover", "Build", "Scale", "Crea
 
 export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentWord, setCurrentWord] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [_currentWord, _setCurrentWord] = useState(0);
+  const [_mousePosition, _setMousePosition] = useState({ x: 0, y: 0 });
 
-  const { scrollYProgress } = useScroll({
+  const { scrollYProgress } = _useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.8], [1, 0.8]);
-  const y = useTransform(scrollYProgress, [0, 0.8], [0, 100]);
+  const opacity = _useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const scale = _useTransform(scrollYProgress, [0, 0.8], [1, 0.8]);
+  const y = _useTransform(scrollYProgress, [0, 0.8], [0, 100]);
 
-  const springOpacity = useSpring(opacity, { stiffness: 100, damping: 20 });
-  const springScale = useSpring(scale, { stiffness: 100, damping: 20 });
+  const springOpacity = _useSpring(opacity, { stiffness: 100, damping: 20 });
+  const springScale = _useSpring(scale, { stiffness: 100, damping: 20 });
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentWord((prev) => (prev + 1) % floatingWords.length);
+      _setCurrentWord((prev) => (prev + 1) % floatingWords.length);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
+      _setMousePosition({
         x: (e.clientX / window.innerWidth - 0.5) * 20,
         y: (e.clientY / window.innerHeight - 0.5) * 20,
       });

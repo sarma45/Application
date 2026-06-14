@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { _Button } from "@/components/ui/button";
 
 interface Notification {
   id: string;
