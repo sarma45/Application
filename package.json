@@ -16,6 +16,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",
     "@prisma/client": "5.22.0",
+    "@react-three/drei": "^9.100.0",
+    "@react-three/fiber": "^8.15.0",
     "@sentry/nextjs": "^10.57.0",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
