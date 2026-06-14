@@ -11,8 +11,8 @@ const floatingWords = ["Deploy", "Monetize", "Discover", "Build", "Scale", "Crea
 
 export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentWord, setCurrentWord] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [_currentWord, _setCurrentWord] = useState(0);
+  const [_mousePosition, _setMousePosition] = useState({ x: 0, y: 0 });
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -28,14 +28,14 @@ export default function HeroSection() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentWord((prev) => (prev + 1) % floatingWords.length);
+      _setCurrentWord((prev) => (prev + 1) % floatingWords.length);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
+      _setMousePosition({
         x: (e.clientX / window.innerWidth - 0.5) * 20,
         y: (e.clientY / window.innerHeight - 0.5) * 20,
       });
