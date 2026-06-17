@@ -304,6 +304,15 @@ const nodeColors = [
   "#7c3aed", "#22d3ee", "#a78bfa", "#0ea5e9"
 ];
 
+// Responsive helper to scale down elements on portrait aspect ratios (e.g., mobile)
+function ResponsiveGroup({ children }: { children: React.ReactNode }) {
+  const { size } = useThree();
+  const aspect = size.width / size.height;
+  // Dynamic scale scaling factor for narrow layouts
+  const scale = aspect < 1.1 ? Math.max(0.6, aspect * 0.9) : 1.0;
+  return <group scale={[scale, scale, scale]}>{children}</group>;
+}
+
 export default function HeroScene() {
   return (
     <div className="absolute inset-0 z-0">
@@ -320,29 +329,31 @@ export default function HeroScene() {
         <pointLight position={[-8, -8, 6]} intensity={1.2} color="#00e6cc" />
         <spotLight position={[0, 7, 7]} angle={0.4} intensity={2.0} color="#a855f7" />
         
-        {/* Dynamic Holographic Core */}
-        <AgentCore3D />
+        <ResponsiveGroup>
+          {/* Dynamic Holographic Core */}
+          <AgentCore3D />
 
-        {/* Ambient Orbiting Spheres */}
-        <MorphingSphere color="#6a00f0" position={[-2, 1, -1.5]} scale={0.45} />
-        <MorphingSphere color="#00e6cc" position={[2.2, -0.8, -1]} scale={0.35} />
-        <MorphingSphere color="#a855f7" position={[-1.2, -1.8, -1.2]} scale={0.3} />
+          {/* Ambient Orbiting Spheres */}
+          <MorphingSphere color="#6a00f0" position={[-2, 1, -1.5]} scale={0.45} />
+          <MorphingSphere color="#00e6cc" position={[2.2, -0.8, -1]} scale={0.35} />
+          <MorphingSphere color="#a855f7" position={[-1.2, -1.8, -1.2]} scale={0.3} />
 
-        {/* Particle Cloud */}
-        <FloatingParticles count={280} />
+          {/* Particle Cloud */}
+          <FloatingParticles count={280} />
 
-        {/* Constellation Nodes */}
-        {nodePositions.map((pos, i) => (
-          <NeuralNode 
-            key={i} 
-            position={pos} 
-            color={nodeColors[i % nodeColors.length]} 
-            size={0.07 + Math.random() * 0.05} 
-          />
-        ))}
+          {/* Constellation Nodes */}
+          {nodePositions.map((pos, i) => (
+            <NeuralNode 
+              key={i} 
+              position={pos} 
+              color={nodeColors[i % nodeColors.length]} 
+              size={0.07 + Math.random() * 0.05} 
+            />
+          ))}
 
-        {/* Dynamic Connective Lines & Data Pulse Packets */}
-        <NeuralConnections nodes={nodePositions} colors={nodeColors} />
+          {/* Dynamic Connective Lines & Data Pulse Packets */}
+          <NeuralConnections nodes={nodePositions} colors={nodeColors} />
+        </ResponsiveGroup>
 
         <OrbitControls
           enableZoom={false}
