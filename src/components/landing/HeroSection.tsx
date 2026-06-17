@@ -5,7 +5,19 @@ import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
-const HeroScene = dynamic(() => import("@/components/effects/HeroScene"), { ssr: false });
+const HeroScene = dynamic(() => import("@/components/effects/HeroScene"), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 z-0 bg-zinc-950 flex items-center justify-center">
+      {/* Neo-ambient glowing placeholder matching the WebGL theme */}
+      <div className="relative w-80 h-80 rounded-full border border-purple-500/10 bg-purple-500/5 flex items-center justify-center animate-pulse">
+        <div className="absolute w-60 h-60 rounded-full border border-cyan-500/10 bg-cyan-500/5 animate-ping [animation-duration:3s]" />
+        <div className="absolute w-44 h-44 rounded-full border border-violet-500/15 bg-violet-500/10 animate-pulse [animation-duration:2s]" />
+        <div className="w-10 h-10 rounded-full bg-purple-500/20 blur-md animate-pulse" />
+      </div>
+    </div>
+  )
+});
 
 const floatingWords = ["Deploy", "Monetize", "Discover", "Build", "Scale", "Create"];
 

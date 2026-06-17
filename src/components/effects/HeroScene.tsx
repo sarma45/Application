@@ -2,11 +2,20 @@
 
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Sphere, MeshDistortMaterial, Line, OrbitControls, Icosahedron } from "@react-three/drei";
+import { Float, Sphere, MeshDistortMaterial, Line, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
+// Constellation Coordinates
+export const nodePositions: [number, number, number][] = [
+  [-2.6, 1.4, 0.2], [-1.8, -1.6, 0.6], [0.1, 2.3, -0.4], [1.9, 1.6, 0.9],
+  [2.4, -0.9, -0.4], [0.6, -2.4, 0.3], [-2.1, -0.4, -0.7], [1.2, 0.1, 1.3],
+  [-0.9, 1.9, -0.6], [3.2, 0.6, 0.4], [-3.1, -1.1, -0.1], [0.2, -0.9, -1.1],
+];
+
+import { useTheme } from "@/hooks/use-theme";
+
 // Individual Node component with reactive hover / magnetic mouse pull
-function NeuralNode({ position, color, size = 0.15 }: { position: [number, number, number]; color: string; size?: number }) {
+function NeuralNode({ position, color, size = 0.15, isLight }: { position: [number, number, number]; color: string; size?: number; isLight: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const initialPos = useMemo(() => new THREE.Vector3(...position), [position]);
   const { pointer } = useThree();
@@ -33,14 +42,14 @@ function NeuralNode({ position, color, size = 0.15 }: { position: [number, numbe
         <meshPhysicalMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={1.2}
+          emissiveIntensity={isLight ? 0.6 : 1.2}
           transparent
-          opacity={0.85}
-          roughness={0.1}
-          metalness={0.9}
+          opacity={isLight ? 0.9 : 0.85}
+          roughness={isLight ? 0.2 : 0.1}
+          metalness={isLight ? 0.7 : 0.9}
           clearcoat={1.0}
           clearcoatRoughness={0.1}
-          wireframe={Math.random() > 0.6} // 40% chance of being high-tech wireframe
+          wireframe={Math.random() > 0.6} // 40% chance of being wireframe
         />
       </mesh>
     </Float>
@@ -129,7 +138,7 @@ function NeuralConnections({ nodes, colors }: { nodes: [number, number, number][
 }
 
 // Next-Generation Agent Core representing the main interface system
-function AgentCore3D() {
+function AgentCore3D({ isLight }: { isLight: boolean }) {
   const coreRef = useRef<THREE.Group>(null);
   const outerSphereRef = useRef<THREE.Mesh>(null);
   const { pointer } = useThree();
@@ -150,17 +159,23 @@ function AgentCore3D() {
     }
   });
 
+  const coreColor = isLight ? "#4f46e5" : "#a855f7";
+  const coreEmissive = isLight ? "#312e81" : "#6a00f0";
+  const waveColor = isLight ? "#0891b2" : "#00e6cc";
+  const torusColor1 = isLight ? "#0f766e" : "#00e6cc";
+  const torusColor2 = isLight ? "#1d4ed8" : "#3b82f6";
+
   return (
     <group ref={coreRef} position={[0, 0, 0]}>
       {/* Inner High-Tech wireframe core */}
       <mesh>
         <icosahedronGeometry args={[0.9, 2]} />
         <meshPhysicalMaterial
-          color="#a855f7"
-          emissive="#6a00f0"
-          emissiveIntensity={2.5}
-          roughness={0.05}
-          metalness={0.95}
+          color={coreColor}
+          emissive={coreEmissive}
+          emissiveIntensity={isLight ? 1.5 : 2.5}
+          roughness={isLight ? 0.15 : 0.05}
+          metalness={isLight ? 0.8 : 0.95}
           clearcoat={1.0}
           wireframe
         />
@@ -170,11 +185,11 @@ function AgentCore3D() {
       <Float speed={1.5} rotationIntensity={1.2} floatIntensity={1.2}>
         <Sphere ref={outerSphereRef} args={[1.25, 64, 64]}>
           <MeshDistortMaterial
-            color="#00e6cc"
-            emissive="#00e6cc"
-            emissiveIntensity={0.8}
+            color={waveColor}
+            emissive={waveColor}
+            emissiveIntensity={isLight ? 0.4 : 0.8}
             transparent
-            opacity={0.35}
+            opacity={isLight ? 0.45 : 0.35}
             distort={0.35}
             speed={2.2}
             roughness={0.0}
@@ -189,7 +204,7 @@ function AgentCore3D() {
       <group rotation={[Math.PI / 4, Math.PI / 4, 0]}>
         <mesh>
           <torusGeometry args={[1.7, 0.015, 8, 80]} />
-          <meshBasicMaterial color="#00e6cc" transparent opacity={0.4} />
+          <meshBasicMaterial color={torusColor1} transparent opacity={isLight ? 0.5 : 0.4} />
         </mesh>
       </group>
 
@@ -197,7 +212,7 @@ function AgentCore3D() {
       <group rotation={[-Math.PI / 4, Math.PI / 3, Math.PI / 2]}>
         <mesh>
           <torusGeometry args={[1.9, 0.01, 8, 80]} />
-          <meshBasicMaterial color="#3b82f6" transparent opacity={0.35} />
+          <meshBasicMaterial color={torusColor2} transparent opacity={isLight ? 0.45 : 0.35} />
         </mesh>
       </group>
     </group>
@@ -205,16 +220,16 @@ function AgentCore3D() {
 }
 
 // Morphing Ambient Nodes in space
-function MorphingSphere({ color, position, scale = 1 }: { color: string; position: [number, number, number]; scale?: number }) {
+function MorphingSphere({ color, position, scale = 1, isLight }: { color: string; position: [number, number, number]; scale?: number; isLight: boolean }) {
   return (
     <Float speed={1.2} rotationIntensity={1.2} floatIntensity={1.5}>
       <Sphere args={[1, 64, 64]} position={position} scale={scale}>
         <MeshDistortMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.2}
+          emissiveIntensity={isLight ? 0.15 : 0.2}
           transparent
-          opacity={0.2}
+          opacity={isLight ? 0.3 : 0.2}
           roughness={0.15}
           metalness={0.7}
           distort={0.3}
@@ -227,18 +242,28 @@ function MorphingSphere({ color, position, scale = 1 }: { color: string; positio
 }
 
 // Glowing high-tech starfield / particle grid
-function FloatingParticles({ count = 200 }: { count?: number }) {
+function FloatingParticles({ count = 200, isLight }: { count?: number; isLight: boolean }) {
   const meshRef = useRef<THREE.Points>(null);
 
   const [positions, colors] = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
-    const palette = [
+    
+    const paletteDark = [
       new THREE.Color("#6a00f0"),
       new THREE.Color("#00e6cc"),
       new THREE.Color("#a855f7"),
       new THREE.Color("#3b82f6"),
     ];
+    
+    const paletteLight = [
+      new THREE.Color("#4f46e5"),
+      new THREE.Color("#0891b2"),
+      new THREE.Color("#7c3aed"),
+      new THREE.Color("#2563eb"),
+    ];
+
+    const palette = isLight ? paletteLight : paletteDark;
 
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 14;
@@ -251,7 +276,7 @@ function FloatingParticles({ count = 200 }: { count?: number }) {
       col[i * 3 + 2] = color.b;
     }
     return [pos, col];
-  }, [count]);
+  }, [count, isLight]);
 
   useFrame(({ clock }) => {
     if (meshRef.current) {
@@ -283,26 +308,13 @@ function FloatingParticles({ count = 200 }: { count?: number }) {
         size={0.035}
         vertexColors
         transparent
-        opacity={0.7}
-        blending={THREE.AdditiveBlending}
+        opacity={isLight ? 0.8 : 0.7}
+        blending={isLight ? THREE.NormalBlending : THREE.AdditiveBlending}
         sizeAttenuation
       />
     </points>
   );
 }
-
-// Constellation Coordinates
-export const nodePositions: [number, number, number][] = [
-  [-2.6, 1.4, 0.2], [-1.8, -1.6, 0.6], [0.1, 2.3, -0.4], [1.9, 1.6, 0.9],
-  [2.4, -0.9, -0.4], [0.6, -2.4, 0.3], [-2.1, -0.4, -0.7], [1.2, 0.1, 1.3],
-  [-0.9, 1.9, -0.6], [3.2, 0.6, 0.4], [-3.1, -1.1, -0.1], [0.2, -0.9, -1.1],
-];
-
-const nodeColors = [
-  "#6a00f0", "#00e6cc", "#a855f7", "#3b82f6", 
-  "#8b5cf6", "#06b6d4", "#c084fc", "#38bdf8", 
-  "#7c3aed", "#22d3ee", "#a78bfa", "#0ea5e9"
-];
 
 // Responsive helper to scale down elements on portrait aspect ratios (e.g., mobile)
 function ResponsiveGroup({ children }: { children: React.ReactNode }) {
@@ -314,6 +326,13 @@ function ResponsiveGroup({ children }: { children: React.ReactNode }) {
 }
 
 export default function HeroScene() {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+
+  const nodeColors = isLight
+    ? ["#4f46e5", "#0891b2", "#7c3aed", "#2563eb", "#6366f1", "#0e7490", "#8b5cf6", "#1d4ed8", "#6d28d9", "#0f766e", "#7c3aed", "#1e3a8a"]
+    : ["#6a00f0", "#00e6cc", "#a855f7", "#3b82f6", "#8b5cf6", "#06b6d4", "#c084fc", "#38bdf8", "#7c3aed", "#22d3ee", "#a78bfa", "#0ea5e9"];
+
   return (
     <div className="absolute inset-0 z-0">
       <Canvas
@@ -322,24 +341,24 @@ export default function HeroScene() {
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
       >
-        <ambientLight intensity={0.6} />
+        <ambientLight intensity={isLight ? 1.0 : 0.6} />
         
         {/* Neon Directional Lighting System */}
-        <pointLight position={[8, 8, 8]} intensity={1.8} color="#6a00f0" />
-        <pointLight position={[-8, -8, 6]} intensity={1.2} color="#00e6cc" />
-        <spotLight position={[0, 7, 7]} angle={0.4} intensity={2.0} color="#a855f7" />
+        <pointLight position={[8, 8, 8]} intensity={isLight ? 1.2 : 1.8} color={isLight ? "#4f46e5" : "#6a00f0"} />
+        <pointLight position={[-8, -8, 6]} intensity={isLight ? 0.8 : 1.2} color={isLight ? "#0891b2" : "#00e6cc"} />
+        <spotLight position={[0, 7, 7]} angle={0.4} intensity={isLight ? 1.5 : 2.0} color={isLight ? "#7c3aed" : "#a855f7"} />
         
         <ResponsiveGroup>
           {/* Dynamic Holographic Core */}
-          <AgentCore3D />
+          <AgentCore3D isLight={isLight} />
 
           {/* Ambient Orbiting Spheres */}
-          <MorphingSphere color="#6a00f0" position={[-2, 1, -1.5]} scale={0.45} />
-          <MorphingSphere color="#00e6cc" position={[2.2, -0.8, -1]} scale={0.35} />
-          <MorphingSphere color="#a855f7" position={[-1.2, -1.8, -1.2]} scale={0.3} />
+          <MorphingSphere color={isLight ? "#4f46e5" : "#6a00f0"} position={[-2, 1, -1.5]} scale={0.45} isLight={isLight} />
+          <MorphingSphere color={isLight ? "#0891b2" : "#00e6cc"} position={[2.2, -0.8, -1]} scale={0.35} isLight={isLight} />
+          <MorphingSphere color={isLight ? "#7c3aed" : "#a855f7"} position={[-1.2, -1.8, -1.2]} scale={0.3} isLight={isLight} />
 
           {/* Particle Cloud */}
-          <FloatingParticles count={280} />
+          <FloatingParticles count={280} isLight={isLight} />
 
           {/* Constellation Nodes */}
           {nodePositions.map((pos, i) => (
@@ -348,6 +367,7 @@ export default function HeroScene() {
               position={pos} 
               color={nodeColors[i % nodeColors.length]} 
               size={0.07 + Math.random() * 0.05} 
+              isLight={isLight}
             />
           ))}
 
