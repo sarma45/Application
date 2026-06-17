@@ -61,12 +61,16 @@ describe("AI Gateway", () => {
 
   describe("complete", () => {
     it("returns text from successful provider", async () => {
-      vi.mocked(completeNonStreaming).mockResolvedValueOnce({
-        text: "Hello world",
-        usage: { promptTokens: 10, completionTokens: 5 },
-        provider: "openrouter",
-        model: "test-model",
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          text: "Hello world",
+          usage: { promptTokens: 10, completionTokens: 5 },
+          provider: "openrouter",
+          model: "test-model",
+        }),
       });
+      vi.stubGlobal("fetch", mockFetch);
 
       const result = await complete({
         category: "CHAT",
@@ -76,17 +80,20 @@ describe("AI Gateway", () => {
       expect(result.text).toBe("Hello world");
       expect(result.provider).toBe("openrouter");
       expect(result.usage.promptTokens).toBe(10);
+      vi.unstubAllGlobals();
     });
 
-    it("falls back to next provider on failure", async () => {
-      vi.mocked(completeNonStreaming)
-        .mockRejectedValueOnce(new Error("Provider 1 failed"))
-        .mockResolvedValueOnce({
+    it("returns response from gateway fallback", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           text: "Fallback response",
           usage: { promptTokens: 5, completionTokens: 3 },
           provider: "gemini",
           model: "gemini-2.5-flash",
-        });
+        }),
+      });
+      vi.stubGlobal("fetch", mockFetch);
 
       const result = await complete({
         category: "CHAT",
@@ -95,27 +102,34 @@ describe("AI Gateway", () => {
 
       expect(result.text).toBe("Fallback response");
       expect(result.provider).toBe("gemini");
+      vi.unstubAllGlobals();
     });
 
-    it("returns fallback message when all providers fail", async () => {
-      vi.mocked(completeNonStreaming).mockRejectedValue(new Error("All providers failed"));
+    it("returns fallback message when gateway is unavailable", async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error("Fetch failed"));
+      vi.stubGlobal("fetch", mockFetch);
 
       const result = await complete({
         category: "CHAT",
         prompt: "Hello",
       });
 
-      expect(result.text).toBe("[fallback] all providers failed");
+      expect(result.text).toBe("[fallback] AI service unavailable");
       expect(result.provider).toBe("fallback");
+      vi.unstubAllGlobals();
     });
 
-    it("includes system prompt in messages", async () => {
-      vi.mocked(completeNonStreaming).mockResolvedValueOnce({
-        text: "Response",
-        usage: { promptTokens: 20, completionTokens: 10 },
-        provider: "openrouter",
-        model: "test-model",
+    it("includes system prompt in request payload", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          text: "Response",
+          usage: { promptTokens: 20, completionTokens: 10 },
+          provider: "openrouter",
+          model: "test-model",
+        }),
       });
+      vi.stubGlobal("fetch", mockFetch);
 
       await complete({
         category: "CHAT",
@@ -123,10 +137,11 @@ describe("AI Gateway", () => {
         systemPrompt: "Be helpful",
       });
 
-      expect(vi.mocked(completeNonStreaming).mock.calls[0][1].messages).toContainEqual({
-        role: "system",
-        content: "Be helpful",
-      });
+      const fetchCallArgs = mockFetch.mock.calls[0][1] as RequestInit;
+      const body = JSON.parse(fetchCallArgs.body as string);
+      expect(body.systemPrompt).toBe("Be helpful");
+      expect(body.prompt).toBe("Hello");
+      vi.unstubAllGlobals();
     });
   });
 });

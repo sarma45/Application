@@ -14,7 +14,7 @@ export async function verifyTurnstileToken(token: string): Promise<boolean> {
     const data = (await res.json()) as { success?: boolean };
     return data.success === true;
   } catch {
-    return true;
+    return false;
   }
 }
 
