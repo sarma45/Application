@@ -1,42 +1,91 @@
 "use client";
 
 import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Sphere, MeshDistortMaterial, Line, OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Float, Sphere, MeshDistortMaterial, Line, OrbitControls, Icosahedron } from "@react-three/drei";
 import * as THREE from "three";
 
+// Individual Node component with reactive hover / magnetic mouse pull
 function NeuralNode({ position, color, size = 0.15 }: { position: [number, number, number]; color: string; size?: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const initialPos = useMemo(() => new THREE.Vector3(...position), [position]);
+  const { pointer } = useThree();
 
   useFrame(({ clock }) => {
     if (meshRef.current) {
-      const scale = 1 + Math.sin(clock.getElapsedTime() * 2 + position[0] + position[1]) * 0.3;
+      // 1. Futuristic scale pulsation
+      const scale = 1 + Math.sin(clock.getElapsedTime() * 2.5 + position[0] + position[1]) * 0.25;
       meshRef.current.scale.setScalar(scale);
+
+      // 2. Cursor response: subtle magnetic pull towards pointer
+      const targetX = initialPos.x + pointer.x * 0.45;
+      const targetY = initialPos.y + pointer.y * 0.45;
+      
+      meshRef.current.position.x = THREE.MathUtils.lerp(meshRef.current.position.x, targetX, 0.08);
+      meshRef.current.position.y = THREE.MathUtils.lerp(meshRef.current.position.y, targetY, 0.08);
     }
   });
 
   return (
-    <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+    <Float speed={2} rotationIntensity={0.8} floatIntensity={0.8}>
       <mesh ref={meshRef} position={position}>
-        <sphereGeometry args={[size, 16, 16]} />
+        <icosahedronGeometry args={[size, 1]} />
         <meshPhysicalMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.3}
+          emissiveIntensity={1.2}
           transparent
-          opacity={0.9}
+          opacity={0.85}
           roughness={0.1}
-          metalness={0.8}
-          clearcoat={1}
+          metalness={0.9}
+          clearcoat={1.0}
+          clearcoatRoughness={0.1}
+          wireframe={Math.random() > 0.6} // 40% chance of being high-tech wireframe
         />
       </mesh>
     </Float>
   );
 }
 
+// Glowing energy pulses that flow along the data lines
+function DataPulse({ start, end, color }: { start: THREE.Vector3; end: THREE.Vector3; color: string }) {
+  const pulseRef = useRef<THREE.Mesh>(null);
+  
+  const curve = useMemo(() => {
+    const startVec = new THREE.Vector3(...start);
+    const endVec = new THREE.Vector3(...end);
+    const midVec = new THREE.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);
+    midVec.y += (Math.random() - 0.5) * 0.6; // Create Bezier height offset
+    return new THREE.QuadraticBezierCurve3(startVec, midVec, endVec);
+  }, [start, end]);
+
+  // Individual random speed offset
+  const speed = useMemo(() => 0.35 + Math.random() * 0.3, []);
+
+  useFrame(({ clock }) => {
+    if (pulseRef.current) {
+      const t = (clock.getElapsedTime() * speed) % 1.0;
+      const currentPos = curve.getPointAt(t);
+      pulseRef.current.position.copy(currentPos);
+      
+      // Pulsate pulse size slightly
+      const sizePulse = 0.05 + Math.sin(clock.getElapsedTime() * 10) * 0.015;
+      pulseRef.current.scale.setScalar(sizePulse / 0.05);
+    }
+  });
+
+  return (
+    <mesh ref={pulseRef}>
+      <sphereGeometry args={[0.04, 16, 16]} />
+      <meshBasicMaterial color={color} toneMapped={false} />
+    </mesh>
+  );
+}
+
+// Connections rendering with Bezier curves & data pulse packets
 function NeuralConnections({ nodes, colors }: { nodes: [number, number, number][]; colors: string[] }) {
   const connections = useMemo(() => {
-    const conns: { points: [number, number, number][]; color: string }[] = [];
+    const conns: { points: [number, number, number][]; start: THREE.Vector3; end: THREE.Vector3; color: string }[] = [];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const dist = Math.sqrt(
@@ -44,14 +93,14 @@ function NeuralConnections({ nodes, colors }: { nodes: [number, number, number][
           Math.pow(nodes[i][1] - nodes[j][1], 2) +
           Math.pow(nodes[i][2] - nodes[j][2], 2)
         );
-        if (dist < 2.5 && Math.random() > 0.4) {
+        if (dist < 2.8 && Math.random() > 0.3) {
           const start = new THREE.Vector3(...nodes[i]);
           const end = new THREE.Vector3(...nodes[j]);
           const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
           mid.y += (Math.random() - 0.5) * 0.5;
           const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
           const pts = curve.getPoints(16).map(p => [p.x, p.y, p.z] as [number, number, number]);
-          conns.push({ points: pts, color: colors[i % colors.length] });
+          conns.push({ points: pts, start, end, color: colors[i % colors.length] });
         }
       }
     }
@@ -61,40 +110,123 @@ function NeuralConnections({ nodes, colors }: { nodes: [number, number, number][
   return (
     <group>
       {connections.map((conn, i) => (
-        <Line
-          key={i}
-          points={conn.points}
-          color={conn.color}
-          lineWidth={1}
-          transparent
-          opacity={0.12}
-        />
+        <group key={i}>
+          <Line
+            points={conn.points}
+            color={conn.color}
+            lineWidth={1.2}
+            transparent
+            opacity={0.16}
+          />
+          {/* Only render pulses on 50% of the active connection paths to optimize memory */}
+          {i % 2 === 0 && (
+            <DataPulse start={conn.start} end={conn.end} color={conn.color} />
+          )}
+        </group>
       ))}
     </group>
   );
 }
 
+// Next-Generation Agent Core representing the main interface system
+function AgentCore3D() {
+  const coreRef = useRef<THREE.Group>(null);
+  const outerSphereRef = useRef<THREE.Mesh>(null);
+  const { pointer } = useThree();
+
+  useFrame(({ clock }) => {
+    const elapsed = clock.getElapsedTime();
+    if (coreRef.current) {
+      // Rotate core
+      coreRef.current.rotation.y = elapsed * 0.12;
+      coreRef.current.rotation.x = elapsed * 0.06;
+      
+      // Lean core toward pointer
+      coreRef.current.position.x = THREE.MathUtils.lerp(coreRef.current.position.x, pointer.x * 0.6, 0.05);
+      coreRef.current.position.y = THREE.MathUtils.lerp(coreRef.current.position.y, pointer.y * 0.6, 0.05);
+    }
+    if (outerSphereRef.current) {
+      outerSphereRef.current.rotation.z = -elapsed * 0.2;
+    }
+  });
+
+  return (
+    <group ref={coreRef} position={[0, 0, 0]}>
+      {/* Inner High-Tech wireframe core */}
+      <mesh>
+        <icosahedronGeometry args={[0.9, 2]} />
+        <meshPhysicalMaterial
+          color="#a855f7"
+          emissive="#6a00f0"
+          emissiveIntensity={2.5}
+          roughness={0.05}
+          metalness={0.95}
+          clearcoat={1.0}
+          wireframe
+        />
+      </mesh>
+
+      {/* Holographic energy wave distorter */}
+      <Float speed={1.5} rotationIntensity={1.2} floatIntensity={1.2}>
+        <Sphere ref={outerSphereRef} args={[1.25, 64, 64]}>
+          <MeshDistortMaterial
+            color="#00e6cc"
+            emissive="#00e6cc"
+            emissiveIntensity={0.8}
+            transparent
+            opacity={0.35}
+            distort={0.35}
+            speed={2.2}
+            roughness={0.0}
+            metalness={0.9}
+            clearcoat={1.0}
+            clearcoatRoughness={0.0}
+          />
+        </Sphere>
+      </Float>
+
+      {/* Neon Orbit Path 1 */}
+      <group rotation={[Math.PI / 4, Math.PI / 4, 0]}>
+        <mesh>
+          <torusGeometry args={[1.7, 0.015, 8, 80]} />
+          <meshBasicMaterial color="#00e6cc" transparent opacity={0.4} />
+        </mesh>
+      </group>
+
+      {/* Neon Orbit Path 2 */}
+      <group rotation={[-Math.PI / 4, Math.PI / 3, Math.PI / 2]}>
+        <mesh>
+          <torusGeometry args={[1.9, 0.01, 8, 80]} />
+          <meshBasicMaterial color="#3b82f6" transparent opacity={0.35} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+// Morphing Ambient Nodes in space
 function MorphingSphere({ color, position, scale = 1 }: { color: string; position: [number, number, number]; scale?: number }) {
   return (
-    <Float speed={0.8} rotationIntensity={0.8} floatIntensity={1.2}>
+    <Float speed={1.2} rotationIntensity={1.2} floatIntensity={1.5}>
       <Sphere args={[1, 64, 64]} position={position} scale={scale}>
         <MeshDistortMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.15}
+          emissiveIntensity={0.2}
           transparent
-          opacity={0.25}
-          roughness={0.2}
-          metalness={0.6}
-          distort={0.25}
-          speed={1.5}
-          clearcoat={0.5}
+          opacity={0.2}
+          roughness={0.15}
+          metalness={0.7}
+          distort={0.3}
+          speed={1.8}
+          clearcoat={0.6}
         />
       </Sphere>
     </Float>
   );
 }
 
+// Glowing high-tech starfield / particle grid
 function FloatingParticles({ count = 200 }: { count?: number }) {
   const meshRef = useRef<THREE.Points>(null);
 
@@ -109,9 +241,9 @@ function FloatingParticles({ count = 200 }: { count?: number }) {
     ];
 
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 12;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 8;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 6;
+      pos[i * 3] = (Math.random() - 0.5) * 14;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 9;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 7;
 
       const color = palette[Math.floor(Math.random() * palette.length)];
       col[i * 3] = color.r;
@@ -123,10 +255,11 @@ function FloatingParticles({ count = 200 }: { count?: number }) {
 
   useFrame(({ clock }) => {
     if (meshRef.current) {
-      const positions = meshRef.current.geometry.attributes.position.array as Float32Array;
+      const array = meshRef.current.geometry.attributes.position.array as Float32Array;
+      const time = clock.getElapsedTime();
       for (let i = 0; i < count; i++) {
-        positions[i * 3 + 1] += Math.sin(clock.getElapsedTime() * 0.3 + i) * 0.001;
-        positions[i * 3] += Math.cos(clock.getElapsedTime() * 0.2 + i) * 0.001;
+        array[i * 3 + 1] += Math.sin(time * 0.4 + i) * 0.0015;
+        array[i * 3] += Math.cos(time * 0.3 + i) * 0.001;
       }
       meshRef.current.geometry.attributes.position.needsUpdate = true;
     }
@@ -147,10 +280,10 @@ function FloatingParticles({ count = 200 }: { count?: number }) {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.03}
+        size={0.035}
         vertexColors
         transparent
-        opacity={0.6}
+        opacity={0.7}
         blending={THREE.AdditiveBlending}
         sizeAttenuation
       />
@@ -158,81 +291,57 @@ function FloatingParticles({ count = 200 }: { count?: number }) {
   );
 }
 
-function SpinningTorii() {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame(({ clock }) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.x = Math.sin(clock.getElapsedTime() * 0.2) * 0.2;
-      groupRef.current.rotation.y += 0.005;
-      groupRef.current.rotation.z = Math.cos(clock.getElapsedTime() * 0.15) * 0.1;
-    }
-  });
-
-  const torii = useMemo(() => {
-    const items = [];
-    for (let i = 0; i < 8; i++) {
-      const radius = 1.8 + i * 0.3;
-      const color = i % 2 === 0 ? "#6a00f0" : "#00e6cc";
-      items.push({ radius, color, opacity: 0.15 - i * 0.012 });
-    }
-    return items;
-  }, []);
-
-  return (
-    <group ref={groupRef}>
-      {torii.map((t, i) => (
-        <mesh key={i} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[t.radius, 0.015, 16, 100]} />
-          <meshPhysicalMaterial
-            color={t.color}
-            emissive={t.color}
-            emissiveIntensity={0.2}
-            transparent
-            opacity={Math.max(0.05, t.opacity)}
-            roughness={0.1}
-            metalness={0.9}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
+// Constellation Coordinates
 export const nodePositions: [number, number, number][] = [
-  [-2.5, 1.2, 0], [-1.5, -1.8, 0.5], [0, 2.2, -0.3], [1.8, 1.5, 0.8],
-  [2.2, -1, -0.5], [0.5, -2.5, 0.2], [-2, -0.5, -0.8], [1, 0, 1.2],
-  [-1, 1.8, -0.5], [3, 0.5, 0.3], [-3, -1.2, -0.2], [0, -1, -1],
+  [-2.6, 1.4, 0.2], [-1.8, -1.6, 0.6], [0.1, 2.3, -0.4], [1.9, 1.6, 0.9],
+  [2.4, -0.9, -0.4], [0.6, -2.4, 0.3], [-2.1, -0.4, -0.7], [1.2, 0.1, 1.3],
+  [-0.9, 1.9, -0.6], [3.2, 0.6, 0.4], [-3.1, -1.1, -0.1], [0.2, -0.9, -1.1],
 ];
 
-const nodeColors = ["#6a00f0", "#00e6cc", "#a855f7", "#3b82f6", "#8b5cf6", "#06b6d4", "#c084fc", "#38bdf8", "#7c3aed", "#22d3ee", "#a78bfa", "#0ea5e9"];
+const nodeColors = [
+  "#6a00f0", "#00e6cc", "#a855f7", "#3b82f6", 
+  "#8b5cf6", "#06b6d4", "#c084fc", "#38bdf8", 
+  "#7c3aed", "#22d3ee", "#a78bfa", "#0ea5e9"
+];
 
 export default function HeroScene() {
   return (
     <div className="absolute inset-0 z-0">
       <Canvas
-        camera={{ position: [0, 0, 6], fov: 60 }}
+        camera={{ position: [0, 0, 6.5], fov: 55 }}
         dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
       >
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1} color="#6a00f0" />
-        <pointLight position={[-10, -10, 5]} intensity={0.5} color="#00e6cc" />
-        <spotLight position={[0, 5, 5]} angle={0.3} intensity={0.8} color="#a855f7" />
+        <ambientLight intensity={0.6} />
+        
+        {/* Neon Directional Lighting System */}
+        <pointLight position={[8, 8, 8]} intensity={1.8} color="#6a00f0" />
+        <pointLight position={[-8, -8, 6]} intensity={1.2} color="#00e6cc" />
+        <spotLight position={[0, 7, 7]} angle={0.4} intensity={2.0} color="#a855f7" />
+        
+        {/* Dynamic Holographic Core */}
+        <AgentCore3D />
 
-        <FloatingParticles count={250} />
+        {/* Ambient Orbiting Spheres */}
+        <MorphingSphere color="#6a00f0" position={[-2, 1, -1.5]} scale={0.45} />
+        <MorphingSphere color="#00e6cc" position={[2.2, -0.8, -1]} scale={0.35} />
+        <MorphingSphere color="#a855f7" position={[-1.2, -1.8, -1.2]} scale={0.3} />
 
-        <MorphingSphere color="#6a00f0" position={[-1.5, 0.8, -1]} scale={0.6} />
-        <MorphingSphere color="#00e6cc" position={[2, -0.5, -0.5]} scale={0.4} />
-        <MorphingSphere color="#8b5cf6" position={[-1, -1.5, -0.8]} scale={0.35} />
+        {/* Particle Cloud */}
+        <FloatingParticles count={280} />
 
-        <SpinningTorii />
-
+        {/* Constellation Nodes */}
         {nodePositions.map((pos, i) => (
-          <NeuralNode key={i} position={pos} color={nodeColors[i % nodeColors.length]} size={0.08 + Math.random() * 0.06} />
+          <NeuralNode 
+            key={i} 
+            position={pos} 
+            color={nodeColors[i % nodeColors.length]} 
+            size={0.07 + Math.random() * 0.05} 
+          />
         ))}
 
+        {/* Dynamic Connective Lines & Data Pulse Packets */}
         <NeuralConnections nodes={nodePositions} colors={nodeColors} />
 
         <OrbitControls
@@ -240,7 +349,7 @@ export default function HeroScene() {
           enablePan={false}
           enableRotate={false}
           autoRotate
-          autoRotateSpeed={0.3}
+          autoRotateSpeed={0.25}
           maxPolarAngle={Math.PI / 2}
           minPolarAngle={Math.PI / 2}
         />
