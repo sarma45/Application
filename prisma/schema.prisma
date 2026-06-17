@@ -1,3 +1,7 @@
+// AIVerse 2.0 - Database Schema
+// Domain-organized sub-schemas are in prisma/*.prisma (reference only)
+// Prisma 5.x uses this single file as the source of truth
+
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -49,6 +53,7 @@ model User {
   @@index([role])
 }
 
+// ===== Auth Domain =====
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -107,34 +112,7 @@ model EmailVerification {
   @@index([userId])
 }
 
-model Referral {
-  id          String   @id @default(cuid())
-  referrerId  String
-  refereeId   String?  @unique
-  code        String   @unique
-  status      String   @default("PENDING")
-  rewardGiven Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referee  User? @relation("Referee", fields: [refereeId], references: [id], onDelete: SetNull)
-
-  @@index([referrerId])
-  @@index([code])
-}
-
-model CreatorProfile {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  bio           String?
-  payoutMethod  String?
-  payoutAccount Json?
-  totalEarned   Float    @default(0)
-  createdAt     DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
+// ===== Agents Domain =====
 model Agent {
   id            String   @id @default(cuid())
   creatorId     String
@@ -246,6 +224,26 @@ model AgentFavorite {
   @@index([agentId])
 }
 
+model AgentTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  category      String
+  systemPrompt  String   @db.Text
+  toolsConfig   Json?
+  modelProvider String   @default("gemini")
+  tags          String[]
+  isFeatured    Boolean  @default(false)
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([category])
+  @@index([isFeatured])
+  @@index([usageCount])
+}
+
+// ===== Billing Domain =====
 model Wallet {
   id             String   @id @default(cuid())
   userId         String   @unique
@@ -331,6 +329,36 @@ model CreatorPayout {
   @@index([creatorId, createdAt])
   @@index([creatorId, status])
   @@index([status])
+}
+
+// ===== Referral Domain =====
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  refereeId   String?  @unique
+  code        String   @unique
+  status      String   @default("PENDING")
+  rewardGiven Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee  User? @relation("Referee", fields: [refereeId], references: [id], onDelete: SetNull)
+
+  @@index([referrerId])
+  @@index([code])
+}
+
+// ===== Shared Domain =====
+model CreatorProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  bio           String?
+  payoutMethod  String?
+  payoutAccount Json?
+  totalEarned   Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model File {
@@ -448,25 +476,6 @@ model Webhook {
 
   @@index([userId])
   @@index([userId, isActive])
-}
-
-model AgentTemplate {
-  id            String   @id @default(cuid())
-  name          String
-  slug          String   @unique
-  description   String?
-  category      String
-  systemPrompt  String   @db.Text
-  toolsConfig   Json?
-  modelProvider String   @default("gemini")
-  tags          String[]
-  isFeatured    Boolean  @default(false)
-  usageCount    Int      @default(0)
-  createdAt     DateTime @default(now())
-
-  @@index([category])
-  @@index([isFeatured])
-  @@index([usageCount])
 }
 
 model AnalyticsEvent {

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 
 /* eslint-disable no-unused-vars */
 declare global {
@@ -93,7 +94,7 @@ export default function LoginPage() {
             <p className="mt-1 text-sm text-secondary">Sign in to your account</p>
           </div>
         </CardHeader>
-        <div className="p-6 pt-0">
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" autoComplete="email" required />
             <Input id="password" name="password" label="Password" type="password" placeholder="Enter your password" autoComplete="current-password" required />
@@ -108,6 +109,7 @@ export default function LoginPage() {
               </Link>
             </div>
           </form>
+          <SocialAuthButtons />
           <div className="mt-4 space-y-2">
             <p className="text-center text-sm text-secondary">
               Don&apos;t have an account?{" "}
@@ -116,7 +118,7 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );

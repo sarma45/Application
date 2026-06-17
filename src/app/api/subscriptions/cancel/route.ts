@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -23,7 +23,7 @@ export async function POST() {
     }
 
     if (subscription.providerSubId && process.env.STRIPE_SECRET) {
-      await stripe.subscriptions.update(subscription.providerSubId, {
+      await getStripe().subscriptions.update(subscription.providerSubId, {
         cancel_at_period_end: true,
       });
     }

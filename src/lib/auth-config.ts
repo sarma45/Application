@@ -141,9 +141,9 @@ export const authOptions: NextAuthOptions = {
             ...token,
             id: user.id,
             email: user.email,
-            username: (user as any).username ?? null,
-            role: (user as any).role ?? "USER",
-            plan: (user as any).plan ?? "FREE",
+            username: (user as { username?: string | null }).username ?? null,
+            role: (user as { role?: string }).role ?? "USER",
+            plan: (user as { plan?: string }).plan ?? "FREE",
           };
         }
       }
@@ -156,10 +156,10 @@ export const authOptions: NextAuthOptions = {
       session.user = {
         id: token.id as string,
         email: token.email as string,
-        name: (session.user as any)?.name ?? null,
-        username: (token as any).username ?? null,
-        role: (token as any).role ?? "USER",
-        plan: (token as any).plan ?? "FREE",
+        name: (session.user as { name?: string | null })?.name ?? null,
+        username: (token as { username?: string | null }).username ?? null,
+        role: (token as { role?: string }).role ?? "USER",
+        plan: (token as { plan?: string }).plan ?? "FREE",
       };
       return session;
     },

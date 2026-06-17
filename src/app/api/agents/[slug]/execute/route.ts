@@ -153,7 +153,7 @@ export async function POST(
       return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
     }
 
-    const { message, systemPrompt, category, sessionId: clientSessionId } = parsed.data as any;
+    const { message, systemPrompt, category, sessionId: clientSessionId, modelProvider, modelId } = parsed.data as any;
 
     const limit = await checkFreeTierLimit(session.user.id);
     if (!limit.allowed) {
@@ -211,7 +211,11 @@ export async function POST(
 
     const systemPromptToUse = systemPrompt || agent.systemPrompt || "You are a helpful AI assistant.";
     const agentCategory: AgentCategory = (category || agent.category) as AgentCategory;
-    const routes = getRoutesForCategory(agentCategory);
+
+    // Use model override if provided, otherwise fall back to category routing
+    const routes = modelProvider && modelId
+      ? [{ provider: modelProvider as any, model: modelId, apiKey: "" }]
+      : getRoutesForCategory(agentCategory);
 
     if (routes.length === 0) {
       return NextResponse.json({ error: "No AI providers configured", code: "NO_PROVIDERS" }, { status: 503 });

@@ -25,6 +25,8 @@ interface AgentDetail {
   systemPrompt: string | null;
   totalRuns: number;
   creatorId: string;
+  modelProvider: string;
+  modelId: string | null;
   creator: { username: string | null; id: string };
   reviews: Array<{
     id: string;
@@ -44,7 +46,10 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
   if (!agent) {
     agent = await prisma.agent.findUnique({
       where: { slug },
-      include: {
+      select: {
+        id: true, slug: true, name: true, category: true, status: true,
+        pricingType: true, creditsPerRun: true, systemPrompt: true, totalRuns: true,
+        creatorId: true, modelProvider: true, modelId: true,
         creator: { select: { username: true, id: true } },
         reviews: { include: { user: { select: { username: true } } }, take: 5, orderBy: { createdAt: "desc" } },
       },
@@ -119,6 +124,8 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
                 creditsPerRun={agent.creditsPerRun}
                 isTestMode={isCreator}
                 isCreator={isCreator}
+                modelProvider={agent.modelProvider}
+                modelId={agent.modelId}
               />
             </CardContent>
           </Card>

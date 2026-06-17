@@ -25,6 +25,8 @@ export const createAgentSchema = z.object({
   systemPrompt: z.string().max(AGENT_SYSTEM_PROMPT_MAX_LENGTH).optional().default(""),
   pricingType: z.enum(["FREE", "PAID"]).optional().default("FREE"),
   creditsPerRun: z.number().int().min(0).max(AGENT_CREDITS_PER_RUN_MAX).optional().default(0),
+  modelProvider: z.string().max(50).optional(),
+  modelId: z.string().max(100).optional(),
 });
 
 export const updateAgentSchema = z.object({

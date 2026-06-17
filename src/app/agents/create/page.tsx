@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { AGENT_CREDITS_PER_RUN_MAX } from "@/lib/limits";
+import { AGENT_CREDITS_PER_RUN_MAX, AVAILABLE_MODELS } from "@/lib/limits";
 
 const categories = ["CHAT", "CODE", "DATA", "WORKFLOW"];
 const STEPS = ["Basics", "System Prompt", "Tools", "Pricing", "Test & Submit"];
@@ -22,6 +22,8 @@ export default function CreateAgentPage() {
     systemPrompt: "",
     pricingType: "FREE",
     creditsPerRun: 1,
+    modelProvider: "gemini",
+    modelId: "gemini-2.5-flash",
   });
   const [testResult, setTestResult] = useState("");
   const [testLoading, setTestLoading] = useState(false);
@@ -49,7 +51,16 @@ export default function CreateAgentPage() {
       const res = await fetch("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          category: formData.category,
+          systemPrompt: formData.systemPrompt,
+          pricingType: formData.pricingType,
+          creditsPerRun: formData.creditsPerRun,
+          modelProvider: formData.modelProvider,
+          modelId: formData.modelId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -174,23 +185,46 @@ export default function CreateAgentPage() {
       case 2:
         return (
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-theme">Tools Configuration</h3>
-            <p className="text-sm text-secondary">
-              MCP (Model Context Protocol) tools will be available in a future update.
-            </p>
-            <div className="rounded-lg border border-theme/30 p-4 opacity-50">
-              <label className="flex items-center gap-3">
-                <input type="checkbox" disabled className="rounded border-theme" />
-                <span className="text-sm text-secondary">Web Search Tool (Coming Soon)</span>
-              </label>
-              <label className="flex items-center gap-3 mt-2">
-                <input type="checkbox" disabled className="rounded border-theme" />
-                <span className="text-sm text-secondary">File Analysis Tool (Coming Soon)</span>
-              </label>
-              <label className="flex items-center gap-3 mt-2">
-                <input type="checkbox" disabled className="rounded border-theme" />
-                <span className="text-sm text-secondary">API Integration Tool (Coming Soon)</span>
-              </label>
+            <div>
+              <h3 className="text-sm font-medium text-theme mb-3">AI Model</h3>
+              <select
+                id="model"
+                className="flex h-10 w-full rounded-lg border border-theme bg-theme px-3 py-2 text-sm text-theme focus:outline-none focus:ring-2 focus:ring-purple-500"
+                value={formData.modelId}
+                onChange={(e) => {
+                  const selected = AVAILABLE_MODELS.find(m => m.model === e.target.value);
+                  if (selected) {
+                    updateField("modelProvider", selected.provider);
+                    updateField("modelId", selected.model);
+                  }
+                }}
+              >
+                {AVAILABLE_MODELS.map((m) => (
+                  <option key={m.model} value={m.model}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-theme mb-3">Tools Configuration</h3>
+              <p className="text-sm text-secondary">
+                MCP (Model Context Protocol) tools will be available in a future update.
+              </p>
+              <div className="rounded-lg border border-theme/30 p-4 opacity-50">
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" disabled className="rounded border-theme" />
+                  <span className="text-sm text-secondary">Web Search Tool (Coming Soon)</span>
+                </label>
+                <label className="flex items-center gap-3 mt-2">
+                  <input type="checkbox" disabled className="rounded border-theme" />
+                  <span className="text-sm text-secondary">File Analysis Tool (Coming Soon)</span>
+                </label>
+                <label className="flex items-center gap-3 mt-2">
+                  <input type="checkbox" disabled className="rounded border-theme" />
+                  <span className="text-sm text-secondary">API Integration Tool (Coming Soon)</span>
+                </label>
+              </div>
             </div>
           </div>
         );

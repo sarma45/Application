@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { SocialAuthButtons } from "@/components/auth/social-auth-buttons";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function RegisterPage() {
             <p className="mt-1 text-sm text-secondary">Join the AI agent marketplace</p>
           </div>
         </CardHeader>
-        <div className="p-6 pt-0">
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input id="username" name="username" label="Username" type="text" placeholder="your-username" autoComplete="username" />
             <Input id="email" name="email" label="Email" type="email" placeholder="you@example.com" autoComplete="email" required />
@@ -81,13 +82,14 @@ export default function RegisterPage() {
               Create account
             </Button>
           </form>
+          <SocialAuthButtons />
           <p className="mt-4 text-center text-sm text-secondary">
             Already have an account?{" "}
             <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors">
               Sign in
             </Link>
           </p>
-        </div>
+        </CardContent>
       </Card>
     </div>
   );

@@ -81,6 +81,9 @@ function ResetPasswordForm() {
     <Card className="w-full max-w-sm">
       <CardHeader>
         <div className="text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-stream-500 neural-glow">
+            <span className="text-lg font-bold text-theme">A</span>
+          </div>
           <h1 className="text-xl font-semibold text-theme">Set new password</h1>
           <p className="mt-1 text-sm text-secondary">Must be at least 8 characters</p>
         </div>

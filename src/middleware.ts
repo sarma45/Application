@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { redis } from "@/lib/redis";
 
 const authPaths = [
   "/api/auth/login",
@@ -12,7 +13,6 @@ const authPaths = [
 const csrfSafeMethods = ["GET", "HEAD", "OPTIONS"];
 const webhookPaths = ["/api/webhooks/stripe", "/api/webhooks/razorpay"];
 
-// In-memory rate limiting (Edge Runtime compatible)
 const g = globalThis as { __rateLimits?: Map<string, { count: number; reset: number }> };
 const rateLimits = g.__rateLimits ?? new Map<string, { count: number; reset: number }>();
 g.__rateLimits = rateLimits;
@@ -42,43 +42,89 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Rate limiting (in-memory only for Edge Runtime compatibility)
     const ip = request.headers.get("x-real-ip")
       || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       || "unknown";
 
+    const apiKey = request.headers.get("x-api-key") || request.headers.get("authorization")?.replace("Bearer ", "");
+
     const zone = authPaths.some(p => pathname.startsWith(p)) ? "auth" : "api";
     const windowSeconds = zone === "auth" ? 300 : 60;
-    const maxReqs = zone === "auth" ? 10 : 100;
-    const key = `rl:${zone}:${ip}`;
+    const maxReqs = zone === "auth" ? 10 : (apiKey ? 1000 : 100);
+    const key = `rl:${zone}:${apiKey || ip}`;
     const now = Date.now();
     const windowMs = windowSeconds * 1000;
 
-    // Cleanup expired entries periodically
-    if (rateLimits.size > 1000) {
-      const cutoff = now - 60000;
-      for (const [k, v] of rateLimits) {
-        if (v.reset < cutoff) rateLimits.delete(k);
+    let count = 0;
+    let resetTime = now + windowMs;
+    let usedRedis = false;
+
+    if (redis) {
+      try {
+        const currentCount = await redis.incr(key);
+        if (currentCount === 1) {
+          await redis.expire(key, windowSeconds);
+        }
+        count = currentCount;
+        const ttl = await redis.ttl(key);
+        resetTime = now + (ttl > 0 ? ttl * 1000 : windowMs);
+        usedRedis = true;
+      } catch (err) {
+        console.warn("Redis rate limiting failed, falling back to memory limit:", err);
       }
     }
 
-    const record = rateLimits.get(key);
-
-    if (record && now < record.reset) {
-      record.count++;
-      if (record.count > maxReqs) {
-        return NextResponse.json(
-          { error: "Too many requests. Please slow down." },
-          { status: 429, headers: { "Retry-After": String(windowSeconds) } }
-        );
+    if (!usedRedis) {
+      // Prune expired entries if the map grows
+      if (rateLimits.size > 1000) {
+        const cutoff = now;
+        for (const [k, v] of rateLimits) {
+          if (v.reset < cutoff) rateLimits.delete(k);
+        }
       }
-    } else {
-      rateLimits.set(key, { count: 1, reset: now + windowMs });
+
+      // Bound map size to prevent memory leak
+      if (rateLimits.size > 2000) {
+        const keysArray = Array.from(rateLimits.keys());
+        for (let i = 0; i < 500; i++) {
+          rateLimits.delete(keysArray[i]);
+        }
+      }
+
+      const record = rateLimits.get(key);
+
+      if (record && now < record.reset) {
+        record.count++;
+        count = record.count;
+        resetTime = record.reset;
+      } else {
+        rateLimits.set(key, { count: 1, reset: now + windowMs });
+        count = 1;
+        resetTime = now + windowMs;
+      }
     }
 
-    const remaining = maxReqs - (rateLimits.get(key)?.count ?? 0);
+    if (count > maxReqs) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((resetTime - now) / 1000)), "X-RateLimit-Key": apiKey ? "api-key" : "ip" } }
+      );
+    }
+
+    const remaining = maxReqs - count;
     const response = NextResponse.next();
     response.headers.set("X-RateLimit-Remaining", String(Math.max(0, remaining)));
+    response.headers.set("X-RateLimit-Limit", String(maxReqs));
+    if (apiKey) {
+      response.headers.set("X-RateLimit-Scope", "api-key");
+    }
+    return response;
+  }
+
+  if (pathname.startsWith("/ws/")) {
+    const response = NextResponse.next();
+    response.headers.set("Upgrade", "websocket");
+    response.headers.set("Connection", "upgrade");
     return response;
   }
 
@@ -86,5 +132,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/api/:path*", "/ws/:path*"],
 };

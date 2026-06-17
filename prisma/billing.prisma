@@ -1,0 +1,86 @@
+model Wallet {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  balance        Float    @default(0)
+  lifetimeEarned Float    @default(0)
+  lifetimeSpent  Float    @default(0)
+  updatedAt      DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  amount        Float
+  balanceAfter  Float
+  description   String?
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime @default(now())
+
+  wallet Wallet @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  plan              String
+  status            String   @default("active")
+  provider          String   @default("stripe")
+  providerSubId     String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean  @default(false)
+  stripeSessionId   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerPaymentId String?
+  amountUsd         Decimal  @db.Decimal(10, 2)
+  creditsGranted    Int?
+  status            String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([providerPaymentId])
+  @@index([userId])
+  @@index([status])
+}
+
+model CreatorPayout {
+  id              String   @id @default(cuid())
+  creatorId       String
+  amountUsd       Decimal  @db.Decimal(10, 2)
+  creditsRedeemed Float?
+  status          String   @default("PENDING")
+  payoutMethod    String?
+  payoutReference String?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, createdAt])
+  @@index([creatorId, status])
+  @@index([status])
+}

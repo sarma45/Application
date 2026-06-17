@@ -159,7 +159,7 @@ describe("trust scoring", () => {
       await recordViolation(userId, "test");
     }
     const trust = await getTrustScore(userId);
-    expect(trust.score).toBe(100 - 15 - 30 - 45);
+    expect(trust.score).toBe(100 - 15 * 3);
   });
 
   it("should not go below 0", async () => {

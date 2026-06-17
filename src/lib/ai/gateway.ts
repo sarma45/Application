@@ -1,7 +1,8 @@
-import { getRoutesForCategory, type AgentCategory } from "./routing";
-import { completeNonStreaming, getProviderConfig, type CompletionParams } from "./providers";
-export { getRoutesForCategory } from "./routing";
-export type { AgentCategory, ProviderRoute } from "./routing";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import type { AgentCategory } from "./routing";
+import { logger } from "@/lib/logger";
+
+const tracer = trace.getTracer("aiverse");
 
 export interface CompletionOptions {
   category: AgentCategory;
@@ -18,32 +19,64 @@ export interface CompletionResult {
   model: string;
 }
 
+const AI_GATEWAY_URL = process.env.AI_GATEWAY_URL || "http://ai-gateway:4001";
+
 export async function complete(opts: CompletionOptions): Promise<CompletionResult> {
-  const { prompt, systemPrompt, category } = opts;
-  const routes = getRoutesForCategory(category);
+  return tracer.startActiveSpan("gateway.complete", async (span) => {
+    span.setAttributes({
+      "ai.category": opts.category,
+      "ai.prompt_length": opts.prompt.length,
+    });
 
-  const messages: CompletionParams["messages"] = [
-    ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
-    { role: "user" as const, content: prompt },
-  ];
-
-  for (const route of routes) {
     try {
-      const config = getProviderConfig(route.provider, route.apiKey, route.model);
-      const result = await completeNonStreaming(config, { messages, maxTokens: opts.maxTokens, temperature: opts.temperature });
-      return result;
-    } catch (error) {
-      console.warn("provider failed", { provider: route.provider, error });
-    }
-  }
+      const response = await fetch(`${AI_GATEWAY_URL}/v1/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: opts.category,
+          prompt: opts.prompt,
+          systemPrompt: opts.systemPrompt,
+          temperature: opts.temperature,
+          maxTokens: opts.maxTokens,
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
 
-  return {
-    text: "[fallback] all providers failed",
-    usage: { promptTokens: 0, completionTokens: 0 },
-    provider: "fallback",
-    model: "none",
-  };
+      if (!response.ok) {
+        const error = await response.text();
+        const err = new Error(`AI Gateway error ${response.status}: ${error}`);
+        (err as any).status = response.status;
+        throw err;
+      }
+
+      const result = await response.json() as CompletionResult;
+      span.setAttributes({
+        "ai.provider": result.provider,
+        "ai.model": result.model,
+        "ai.prompt_tokens": result.usage.promptTokens,
+        "ai.completion_tokens": result.usage.completionTokens,
+      });
+      span.setStatus({ code: SpanStatusCode.OK });
+      return result;
+    } catch (error: any) {
+      span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+      logger.error("AI Gateway call failed", { error: String(error) });
+      if (error && error.status >= 400 && error.status < 500) {
+        throw error;
+      }
+      return {
+        text: "[fallback] AI service unavailable",
+        usage: { promptTokens: 0, completionTokens: 0 },
+        provider: "fallback",
+        model: "none",
+      };
+    } finally {
+      span.end();
+    }
+  });
 }
 
 export { completeNonStreaming, getProviderConfig } from "./providers";
 export type { ProviderName } from "./routing";
+export { getRoutesForCategory } from "./routing";
+export type { AgentCategory, ProviderRoute } from "./routing";

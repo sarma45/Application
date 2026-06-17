@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { AVAILABLE_MODELS } from "@/lib/limits";
 
 interface AgentRunnerProps {
   agentId: string;
@@ -13,6 +14,8 @@ interface AgentRunnerProps {
   creditsPerRun: number;
   isTestMode?: boolean;
   isCreator?: boolean;
+  modelProvider?: string;
+  modelId?: string | null;
 }
 
 function formatCodeBlocks(text: string): React.ReactNode[] {
@@ -88,13 +91,19 @@ function WorkflowProgress({ messages }: { messages: { role: string; content: str
   );
 }
 
-export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, isTestMode, isCreator }: AgentRunnerProps) {
+export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, isTestMode, isCreator, modelProvider, modelId }: AgentRunnerProps) {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [selectedModel, setSelectedModel] = useState(
+    AVAILABLE_MODELS.find(m => m.model === modelId && m.provider === modelProvider)
+    ?? AVAILABLE_MODELS.find(m => m.provider === modelProvider)
+    ?? AVAILABLE_MODELS[0]
+  );
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +146,8 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
           agentId,
           category,
           systemPrompt,
+          modelProvider: selectedModel.provider,
+          modelId: selectedModel.model,
           sessionId: sessionIdRef.current,
           _test: isTestMode || undefined,
         }),
@@ -209,11 +220,41 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
 
   return (
     <div className="flex flex-col h-[600px]">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-light">
-        <span className="text-xs text-secondary">
-          {isTestMode ? "Test Mode - no credits deducted" : ""}
-          {sessionId ? `Session active` : ""}
-        </span>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-light gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-secondary">
+            {isTestMode ? "Test Mode - no credits deducted" : ""}
+            {sessionId ? `Session active` : ""}
+          </span>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowModelPicker(!showModelPicker)}
+              className="text-xs px-2 py-1 rounded bg-card border border-theme text-secondary hover:text-theme transition-colors"
+            >
+              {selectedModel.label}
+            </button>
+            {showModelPicker && (
+              <div className="absolute top-full left-0 mt-1 z-50 w-56 rounded-lg border border-theme bg-card shadow-lg overflow-hidden">
+                {AVAILABLE_MODELS.map((m) => (
+                  <button
+                    key={m.model}
+                    type="button"
+                    onClick={() => { setSelectedModel(m); setShowModelPicker(false); }}
+                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                      selectedModel.model === m.model
+                        ? "bg-purple-600/20 text-purple-400"
+                        : "text-secondary hover:bg-theme hover:text-theme"
+                    }`}
+                  >
+                    <span className="block font-medium">{m.label}</span>
+                    <span className="block text-muted">{m.provider}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         {messages.length > 0 && (
           <Button variant="ghost" size="sm" onClick={handleClear}>
             Clear

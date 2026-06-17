@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { detectCountry, countryToRegion } from "@/lib/location";
+import { getRegion, adjustedPrice, REGION_CONFIGS } from "@/lib/pricing-regions";
 
 const PLAN_PRICES: Record<string, { monthly: number; stripePriceId?: string }> = {
   PRO: { monthly: 1900 },
@@ -57,17 +59,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Payments not configured" }, { status: 503 });
     }
 
-    const price = PLAN_PRICES[plan].monthly;
+    const country = detectCountry(req);
+    const region = getRegion(countryToRegion(country));
+    const cfg = REGION_CONFIGS[region];
+    const basePrice = PLAN_PRICES[plan].monthly;
+    const unitAmount = adjustedPrice(basePrice, region);
 
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const checkoutSession = await getStripe().checkout.sessions.create({
       mode: "subscription",
-      payment_method_types: ["card"],
+      payment_method_types: cfg.paymentMethods as any,
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: cfg.currency,
             product_data: { name: `AIVerse ${plan} Plan` },
-            unit_amount: billingCycle === "annual" ? price * 10 : price,
+            unit_amount: billingCycle === "annual" ? unitAmount * 10 : unitAmount,
             recurring: { interval: billingCycle === "annual" ? "year" : "month" },
           },
           quantity: 1,

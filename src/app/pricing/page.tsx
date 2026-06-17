@@ -1,23 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
-const plans = [
+const STATIC_PLANS = [
   {
     name: "Free",
     price: 0,
     credits: 100,
     runs: 10,
-    features: [
-      "Browse and run agents",
-      "100 monthly credits",
-      "10 agent runs per day",
-      "Basic support",
-    ],
+    features: ["Browse and run agents", "100 monthly credits", "10 agent runs per day", "Basic support"],
     cta: "Get Started",
     popular: false,
   },
@@ -26,82 +21,64 @@ const plans = [
     price: 19,
     credits: 1000,
     runs: 100,
-    features: [
-      "Everything in Free",
-      "1,000 monthly credits",
-      "100 agent runs per day",
-      "API access",
-      "Email support",
-    ],
+    features: ["Everything in Free", "1,000 monthly credits", "100 agent runs per day", "API access", "Email support"],
     cta: "Subscribe",
     popular: true,
+    id: "PRO",
   },
   {
     name: "Creator",
     price: 39,
     credits: 2000,
     runs: 200,
-    features: [
-      "Everything in Pro",
-      "2,000 monthly credits",
-      "200 agent runs per day",
-      "Publish and monetize agents",
-      "80% revenue share",
-      "Creator dashboard & analytics",
-      "Priority support",
-    ],
+    features: ["Everything in Pro", "2,000 monthly credits", "200 agent runs per day", "Publish and monetize agents", "80% revenue share", "Creator dashboard & analytics", "Priority support"],
     cta: "Subscribe",
     popular: false,
+    id: "CREATOR",
   },
   {
     name: "Business",
     price: 99,
     credits: 10000,
     runs: 1000,
-    features: [
-      "Everything in Creator",
-      "10,000 monthly credits",
-      "1,000 agent runs per day",
-      "10 team members",
-      "Custom models",
-      "Dedicated CSM",
-      "99.5% SLA",
-    ],
+    features: ["Everything in Creator", "10,000 monthly credits", "1,000 agent runs per day", "10 team members", "Custom models", "Dedicated CSM", "99.5% SLA"],
     cta: "Contact Sales",
     popular: false,
   },
 ];
 
+function displayPrice(cents: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+  } catch {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
+}
+
 export default function PricingPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Record<string, { price: number; currency: string }> | null>(null);
 
-  async function handleSubscribe(plan: string) {
-    if (plan === "Business") {
-      window.location.href = "mailto:sales@aiverse.ai";
-      return;
-    }
-    if (plan === "Free") {
-      router.push("/register");
-      return;
-    }
+  useEffect(() => {
+    fetch("/api/subscriptions/plans")
+      .then((r) => r.json())
+      .then(({ data }) => {
+        const map: Record<string, { price: number; currency: string }> = {};
+        for (const p of data) {
+          map[p.id || p.name.toUpperCase()] = { price: p.price, currency: p.currency };
+        }
+        setPlans(map);
+      })
+      .catch(() => {});
+  }, []);
 
-    setLoading(plan);
-    try {
-      const res = await fetch("/api/subscriptions/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: plan.toUpperCase(), billingCycle: "monthly" }),
-      });
-
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      // fallback
+  function planPrice(name: string, fallbackDollars: number): string {
+    const key = name.toUpperCase();
+    const regional = plans?.[key];
+    if (regional) {
+      return displayPrice(regional.price, regional.currency);
     }
-    setLoading(null);
+    return fallbackDollars === 0 ? "Free" : `$${fallbackDollars}`;
   }
 
   return (
@@ -110,10 +87,13 @@ export default function PricingPage() {
         <Badge variant="purple" className="mb-4">Pricing</Badge>
         <h1 className="text-4xl font-bold text-theme">Simple, transparent pricing</h1>
         <p className="mt-2 text-secondary">Choose the plan that fits your needs</p>
+        {plans && (
+          <p className="mt-1 text-xs text-secondary">Prices shown in your local currency</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {plans.map((plan) => (
+        {STATIC_PLANS.map((plan) => (
           <Card
             key={plan.name}
             className={`relative p-6 flex flex-col ${plan.popular ? "ring-1 ring-purple-500/50" : ""}`}
@@ -127,7 +107,7 @@ export default function PricingPage() {
               <h3 className="text-lg font-semibold text-theme">{plan.name}</h3>
               <div className="mt-2 flex items-baseline gap-1">
                 <span className="text-3xl font-bold text-theme">
-                  {plan.price === 0 ? "Free" : `$${plan.price}`}
+                  {planPrice(plan.name, plan.price)}
                 </span>
                 {plan.price > 0 && <span className="text-sm text-secondary">/mo</span>}
               </div>
@@ -149,8 +129,15 @@ export default function PricingPage() {
             <Button
               variant={plan.popular ? "primary" : "secondary"}
               className="w-full"
-              loading={loading === plan.name}
-              onClick={() => handleSubscribe(plan.name)}
+              onClick={() => {
+                if (plan.name === "Free") {
+                  router.push("/register");
+                } else if (plan.name === "Business") {
+                  window.location.href = "mailto:sales@aiverse.ai";
+                } else {
+                  router.push(`/subscribe?plan=${plan.name.toLowerCase()}`);
+                }
+              }}
             >
               {plan.cta}
             </Button>

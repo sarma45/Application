@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, category, systemPrompt, pricingType, creditsPerRun } = parsed.data;
+    const { name, category, systemPrompt, pricingType, creditsPerRun, modelProvider, modelId } = parsed.data;
     const baseSlug = slugify(name);
 
     let agent;
@@ -64,7 +64,8 @@ export async function POST(req: Request) {
           systemPrompt: systemPrompt || "",
           pricingType: pricingType || "FREE",
           creditsPerRun: creditsPerRun || 0,
-          modelProvider: "gemini",
+          modelProvider: modelProvider || "gemini",
+          modelId: modelId || null,
         },
       });
     } catch (err: any) {
@@ -80,7 +81,8 @@ export async function POST(req: Request) {
             systemPrompt: systemPrompt || "",
             pricingType: pricingType || "FREE",
             creditsPerRun: creditsPerRun || 0,
-            modelProvider: "gemini",
+            modelProvider: modelProvider || "gemini",
+            modelId: modelId || null,
           },
         });
       } else {
@@ -130,7 +132,7 @@ export async function GET(req: Request) {
     : null;
 
   if (cacheKey) {
-    const cached = await cacheGet<any>(cacheKey);
+    const cached = await cacheGet<{ agents: AgentWithMeta[]; nextCursor: string | null }>(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
     }
@@ -159,13 +161,32 @@ export async function GET(req: Request) {
     }
   }
 
-  let agents: any[];
+  interface AgentRaw {
+    id: string;
+    name: string;
+    slug: string;
+    category: string;
+    pricingType: string;
+    creditsPerRun: number;
+    totalRuns: number;
+    avgRating: number | null;
+    isFeatured: boolean;
+    status: string;
+    createdAt: Date;
+  }
+
+  interface AgentWithMeta extends AgentRaw {
+    creator: { username: string | null; email: string } | null;
+    _count?: { executions: number };
+  }
+
+  let agents: AgentWithMeta[];
   if (useSemanticSearch) {
     const vectorStr = `[${queryEmbedding.join(",")}]`;
     const categoryFilter = params.category && params.category !== "ALL"
       ? prisma.$queryRaw`AND category = ${params.category}::text`
       : prisma.$queryRaw``;
-    agents = await prisma.$queryRaw`
+    const raw = await prisma.$queryRaw<AgentRaw[]>`
       SELECT id, name, slug, category, "pricingType", "creditsPerRun", "totalRuns", "avgRating", "isFeatured", status, "createdAt"
       FROM "Agent"
       WHERE status = 'APPROVED'::text
@@ -173,7 +194,7 @@ export async function GET(req: Request) {
       ORDER BY embedding <=> ${vectorStr}::vector
       LIMIT ${limit + 1}
     `;
-    agents = (agents as any[]).map((a: any) => ({
+    agents = raw.map((a) => ({
       ...a,
       id: String(a.id),
       creator: null,
@@ -181,22 +202,35 @@ export async function GET(req: Request) {
   } else {
     if (params.q && params.mine !== "true") {
       where.OR = [
-        { name: { contains: params.q, mode: "insensitive" } },
-        { description: { contains: params.q, mode: "insensitive" } },
+        { name: { contains: params.q, mode: "insensitive" as const } },
+        { description: { contains: params.q, mode: "insensitive" as const } },
       ];
     }
 
-    let orderBy: any;
     if (params.sort === "newest") {
-      orderBy = { createdAt: "desc" };
+      const found = await prisma.agent.findMany({
+        where: where as any,
+        orderBy: { createdAt: "desc" },
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
+        take: limit + 1,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: true,
+          pricingType: true,
+          creditsPerRun: true,
+          totalRuns: true,
+          avgRating: true,
+          isFeatured: true,
+          status: true,
+          createdAt: true,
+          creator: { select: { username: true, email: true } },
+        },
+      });
+      agents = found;
     } else if (params.sort === "trending") {
-      orderBy = { totalRuns: "desc" };
-    } else {
-      orderBy = { totalRuns: "desc" };
-    }
-
-    // For trending, prefer recent executions
-    if (params.sort === "trending") {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const found = await prisma.agent.findMany({
         where: where as any,
@@ -223,11 +257,11 @@ export async function GET(req: Request) {
           },
         },
       });
-      agents = (found as any[]).sort((a, b) => b._count.executions - a._count.executions);
+      agents = (found as AgentWithMeta[]).sort((a, b) => (b._count?.executions ?? 0) - (a._count?.executions ?? 0));
     } else {
       const found = await prisma.agent.findMany({
         where: where as any,
-        orderBy,
+        orderBy: { totalRuns: "desc" },
         cursor: cursor ? { id: cursor } : undefined,
         skip: cursor ? 1 : 0,
         take: limit + 1,

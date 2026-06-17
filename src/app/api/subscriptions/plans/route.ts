@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
+import { detectCountry, countryToRegion } from "@/lib/location";
+import { getRegion, adjustedPrice, REGION_CONFIGS } from "@/lib/pricing-regions";
 
 export const runtime = "nodejs";
 
-const PLANS = [
+const BASE_PLANS = [
   {
     id: "FREE",
     name: "Free",
     price: 0,
-    currency: "USD",
     interval: "month",
     features: [
       "Browse and run agents",
@@ -22,7 +23,6 @@ const PLANS = [
     id: "PRO",
     name: "Pro",
     price: 1900,
-    currency: "USD",
     interval: "month",
     features: [
       "Everything in Free",
@@ -38,7 +38,6 @@ const PLANS = [
     id: "CREATOR",
     name: "Creator",
     price: 3900,
-    currency: "USD",
     interval: "month",
     features: [
       "Everything in Pro",
@@ -56,7 +55,6 @@ const PLANS = [
     id: "BUSINESS",
     name: "Business",
     price: 9900,
-    currency: "USD",
     interval: "month",
     features: [
       "Everything in Creator",
@@ -72,6 +70,17 @@ const PLANS = [
   },
 ];
 
-export async function GET() {
-  return NextResponse.json({ data: PLANS });
+export async function GET(request: Request) {
+  const country = detectCountry(request);
+  const region = getRegion(countryToRegion(country));
+  const cfg = REGION_CONFIGS[region];
+
+  const plans = BASE_PLANS.map((p) => ({
+    ...p,
+    currency: cfg.currency.toUpperCase(),
+    price: adjustedPrice(p.price, region),
+    paymentMethods: cfg.paymentMethods,
+  }));
+
+  return NextResponse.json({ data: plans, region, country });
 }

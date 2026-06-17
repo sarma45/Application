@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       if (userId && plan) {
         let currentPeriodEnd: Date | null = null;
         if (subscriptionId) {
-          const stripeSub = await stripe.subscriptions.retrieve(subscriptionId) as any;
+          const stripeSub = await getStripe().subscriptions.retrieve(subscriptionId) as any;
           if (stripeSub?.current_period_end) {
             currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
           }

@@ -1,63 +1,60 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
-import { stripe, CREDIT_PACKAGES, getPricePerCredit } from "@/lib/stripe";
-import { rateLimit } from "@/lib/rate-limit";
+import { checkoutSchema } from "@/lib/validations";
+import { unauthorized, badRequest, serverError } from "@/lib/api-helpers";
+import { getStripe, CREDIT_PACKAGES } from "@/lib/stripe";
+import { logger } from "@/lib/logger";
+import { detectCountry, countryToRegion } from "@/lib/location";
+import { getRegion, adjustedPrice, REGION_CONFIGS } from "@/lib/pricing-regions";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const rl = await rateLimit(req, "api");
-  if (!rl.allowed) {
-    return NextResponse.json({ error: "Too many requests. Please slow down.", code: "RATE_LIMITED" }, { status: 429 });
-  }
-
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
-  }
+  if (!session?.user?.id) return unauthorized();
 
   try {
-    const formData = await req.formData();
-    const credits = parseInt(formData.get("credits") as string);
-
-    if (!credits || !CREDIT_PACKAGES[credits]) {
-      return NextResponse.json({ error: "Invalid credit package", code: "BAD_REQUEST" }, { status: 400 });
+    const body = await req.json();
+    const parsed = checkoutSchema.safeParse(body);
+    if (!parsed.success) {
+      return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
     }
 
-    if (!process.env.STRIPE_SECRET) {
-      return NextResponse.json({ error: "Payments not configured", code: "SERVICE_UNAVAILABLE" }, { status: 503 });
+    const pkg = CREDIT_PACKAGES.find((p) => p.credits === parsed.data.credits);
+    if (!pkg) {
+      return badRequest("Invalid credit package");
     }
 
-    const price = getPricePerCredit(credits);
+    const country = detectCountry(req);
+    const region = getRegion(countryToRegion(country));
+    const cfg = REGION_CONFIGS[region];
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
+    const checkoutSession = await getStripe().checkout.sessions.create({
+      customer_email: session.user.email || undefined,
+      payment_method_types: cfg.paymentMethods as any,
       line_items: [
         {
           price_data: {
-            currency: "usd",
-            product_data: {
-              name: `${credits} AIVerse Credits`,
-              description: `Credit package for AI agent execution`,
-            },
-            unit_amount: Math.round(price * 100),
+            currency: cfg.currency,
+            product_data: { name: `${pkg.credits} Credits` },
+            unit_amount: adjustedPrice(pkg.priceCents, region),
           },
           quantity: 1,
         },
       ],
+      mode: "payment",
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
       metadata: {
         userId: session.user.id,
-        credits: String(credits),
+        credits: String(pkg.credits),
       },
-      success_url: new URL(`/wallet?success=true&credits=${credits}`, req.url).toString(),
-      cancel_url: new URL("/wallet?error=cancelled", req.url).toString(),
     });
 
-    return NextResponse.redirect(checkoutSession.url ?? "/wallet?error=checkout_failed");
+    return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
-    console.error("checkout error", error);
-    return NextResponse.redirect(new URL("/wallet?error=checkout_failed", req.url));
+    logger.error("checkout error", { error: String(error) });
+    return serverError();
   }
 }

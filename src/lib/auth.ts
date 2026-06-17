@@ -15,7 +15,7 @@ export async function requireAuth() {
 
 export async function requireRole(...roles: string[]) {
   const session = await requireAuth();
-  const role = (session.user as any).role;
+  const role = (session.user as { role: string }).role;
   if (!roles.includes(role)) redirect("/");
   return session;
 }

@@ -4,10 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { formatCredits } from "@/lib/utils";
 import { CREDIT_PACKAGES } from "@/lib/stripe";
 
-const CREDIT_PACKS = Object.entries(CREDIT_PACKAGES).map(([credits, price]) => ({
-  credits: Number(credits),
-  price,
-  popular: Number(credits) === 1500,
+const CREDIT_PACKS = CREDIT_PACKAGES.map((pkg) => ({
+  ...pkg,
+  popular: pkg.credits === 1500,
 }));
 
 export default function CreditsPage() {
@@ -33,9 +32,9 @@ export default function CreditsPage() {
               </div>
             )}
             <h2 className="text-2xl font-bold text-theme mb-1">{formatCredits(pack.credits)} Credits</h2>
-            <p className="text-3xl font-bold text-stream-400 mb-4">${pack.price.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-stream-400 mb-4">${(pack.priceCents / 100).toFixed(2)}</p>
             <p className="text-sm text-secondary mb-6">
-              ${(pack.price / pack.credits).toFixed(4)} per credit
+              ${(pack.priceCents / 100 / pack.credits).toFixed(4)} per credit
             </p>
             <form action="/api/checkout" method="POST">
               <input type="hidden" name="credits" value={pack.credits} />

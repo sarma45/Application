@@ -47,11 +47,26 @@ export async function POST(req: Request) {
 
     logger.info("Password reset requested", { userId: user.id });
 
-    await sendEmail({
+    const emailSent = await sendEmail({
       to: normalizedEmail,
       subject: "Reset your AIVerse password",
       html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 1 hour.</p>`,
     });
+
+    if (emailSent) {
+      return NextResponse.json({
+        ok: true,
+        message: "If an account exists, a password reset link has been sent.",
+      });
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      return NextResponse.json({
+        ok: true,
+        devResetUrl: resetUrl,
+        message: "Email not configured. Use the link below in development:",
+      });
+    }
 
     return NextResponse.json({
       ok: true,

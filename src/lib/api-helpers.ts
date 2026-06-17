@@ -101,3 +101,31 @@ export function withRateLimit(zone: "auth" | "api" | "execute" = "api", handler:
     return response;
   };
 }
+
+const DEFAULT_TIMEOUT_MS = 15000;
+
+export function withTimeout(handler: ApiHandler, timeoutMs = DEFAULT_TIMEOUT_MS): ApiHandler {
+  return async (ctx: HandlerContext) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const result = await Promise.race([
+        handler(ctx),
+        new Promise<never>((_, reject) => {
+          controller.signal.addEventListener("abort", () => {
+            reject(new DOMException("Request timeout", "AbortError"));
+          });
+        }),
+      ]);
+      return result;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return apiError("Request timeout", "TIMEOUT", 408);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+}

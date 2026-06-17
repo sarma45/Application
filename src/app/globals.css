@@ -40,39 +40,39 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 5.9%;
-    --card-foreground: 0 0% 98%;
-    --primary: 262 85% 65%;
+    --background: 240 30% 4%;
+    --foreground: 240 10% 98%;
+    --card: 240 25% 6%;
+    --card-foreground: 240 10% 98%;
+    --primary: 265 90% 64%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --secondary: 240 20% 10%;
+    --secondary-foreground: 240 10% 95%;
+    --muted: 240 15% 12%;
+    --muted-foreground: 240 10% 65%;
     --accent: 180 100% 50%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 240 10% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --radius: 0.75rem;
+    --border: 240 20% 12%;
+    --radius: 1rem;
 
-    --text-primary: hsl(0 0% 98%);
-    --text-secondary: hsl(240 5% 64.9%);
-    --text-muted: hsl(240 5% 46%);
-    --text-inverse: hsl(240 10% 3.9%);
-    --bg-primary: hsl(240 10% 3.9%);
-    --bg-secondary: hsl(240 10% 5.9%);
-    --bg-elevated: hsl(240 6% 10%);
-    --bg-card: hsl(240 10% 5.9%);
-    --border-light: rgb(255 255 255 / 0.05);
-    --border-medium: rgb(255 255 255 / 0.08);
-    --border-strong: rgb(255 255 255 / 0.12);
-    --glass-bg: rgb(24 24 36 / 0.4);
-    --glass-border: rgb(255 255 255 / 0.08);
-    --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.3);
-    --glass-strong-bg: rgb(24 24 36 / 0.6);
-    --glass-strong-border: rgb(255 255 255 / 0.12);
+    --text-primary: hsl(240 10% 98%);
+    --text-secondary: hsl(240 10% 70%);
+    --text-muted: hsl(240 10% 50%);
+    --text-inverse: hsl(240 30% 4%);
+    --bg-primary: hsl(240 30% 4%);
+    --bg-secondary: hsl(240 25% 6%);
+    --bg-elevated: hsl(240 20% 8%);
+    --bg-card: hsl(240 25% 6%);
+    --border-light: rgba(255, 255, 255, 0.04);
+    --border-medium: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.12);
+    --glass-bg: rgba(8, 8, 20, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-strong-bg: rgba(8, 8, 24, 0.65);
+    --glass-strong-border: rgba(255, 255, 255, 0.08);
   }
 }
 

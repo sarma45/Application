@@ -5,7 +5,7 @@ const csp = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.anthropic.com",
+  "connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.anthropic.com https://api.cohere.ai wss://*.aiverse.ai",
   "frame-src 'self' https://challenges.cloudflare.com",
   "font-src 'self' data:",
   "base-uri 'self'",
@@ -14,9 +14,13 @@ const csp = [
 
 const nextConfig = {
   images: { unoptimized: false },
-  poweredByHeader: false,
-  reactStrictMode: true,
   compress: true,
+  serverExternalPackages: [
+    'ioredis', 'bullmq',
+    '@opentelemetry/api', '@opentelemetry/sdk-node',
+    '@opentelemetry/exporter-trace-otlp-http', '@opentelemetry/exporter-metrics-otlp-http',
+    '@opentelemetry/sdk-metrics', '@opentelemetry/sdk-trace-node',
+  ],
   webpack(config) {
     config.plugins.push({
       apply(compiler) {

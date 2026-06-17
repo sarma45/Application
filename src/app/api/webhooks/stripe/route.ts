@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import type Stripe from "stripe";
 
 export const runtime = "nodejs";
 
@@ -14,16 +15,16 @@ export async function POST(req: Request) {
 
   const body = await req.text();
 
-  let event;
+  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
-    const checkoutSession = event.data.object as any;
-    const userId = checkoutSession.metadata?.userId as string;
+    const checkoutSession = event.data.object as Stripe.Checkout.Session;
+    const userId = checkoutSession.metadata?.userId ?? "";
     const credits = parseInt(checkoutSession.metadata?.credits ?? "0");
     const amountUsd = (checkoutSession.amount_total ?? 0) / 100;
 

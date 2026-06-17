@@ -6,9 +6,13 @@ let executionQueue: Queue | null = null;
 function getQueue(): Queue | null {
   if (!redis) return null;
   if (!executionQueue) {
-    executionQueue = new Queue("execution-log", {
-      connection: redis as any,
-    });
+    try {
+      executionQueue = new Queue("execution-log", {
+        connection: redis as any,
+      });
+    } catch {
+      return null;
+    }
   }
   return executionQueue;
 }
@@ -30,10 +34,14 @@ export interface ExecutionLogJob {
 export async function enqueueExecutionLog(job: ExecutionLogJob) {
   const queue = getQueue();
   if (!queue) return;
-  await queue.add("log-execution", job, {
-    attempts: 3,
-    backoff: { type: "exponential", delay: 1000 },
-  });
+  try {
+    await queue.add("log-execution", job, {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 1000 },
+    });
+  } catch {
+    // silently ignore if Redis is unavailable
+  }
 }
 
 let payoutQueue: Queue | null = null;
@@ -41,9 +49,13 @@ let payoutQueue: Queue | null = null;
 function getPayoutQueue(): Queue | null {
   if (!redis) return null;
   if (!payoutQueue) {
-    payoutQueue = new Queue("payout-processing", {
-      connection: redis as any,
-    });
+    try {
+      payoutQueue = new Queue("payout-processing", {
+        connection: redis as any,
+      });
+    } catch {
+      return null;
+    }
   }
   return payoutQueue;
 }
@@ -51,7 +63,11 @@ function getPayoutQueue(): Queue | null {
 export async function enqueuePayoutBatch() {
   const queue = getPayoutQueue();
   if (!queue) return;
-  await queue.add("process-payouts", {}, { attempts: 3, backoff: { type: "exponential", delay: 2000 } });
+  try {
+    await queue.add("process-payouts", {}, { attempts: 3, backoff: { type: "exponential", delay: 2000 } });
+  } catch {
+    // silently ignore if Redis is unavailable
+  }
 }
 
 export async function closeQueue() {

@@ -8,20 +8,24 @@ function createRedis(): Redis | null {
     return null;
   }
 
-  const client = new Redis(url, {
-    maxRetriesPerRequest: 3,
-    retryStrategy(times) {
-      if (times > 3) return null;
-      return Math.min(times * 200, 2000);
-    },
-    lazyConnect: true,
-  });
+  try {
+    const client = new Redis(url, {
+      maxRetriesPerRequest: 3,
+      retryStrategy(times) {
+        if (times > 3) return null;
+        return Math.min(times * 200, 2000);
+      },
+      lazyConnect: true,
+    });
 
-  client.on("error", (err) => {
-    console.warn("Redis connection error:", err.message);
-  });
+    client.on("error", (err) => {
+      console.warn("Redis connection error:", err.message);
+    });
 
-  return client;
+    return client;
+  } catch {
+    return null;
+  }
 }
 
 export const redis: Redis | null = globalForRedis.redis ?? createRedis();

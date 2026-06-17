@@ -5,30 +5,31 @@ import { redis } from "@/lib/redis";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const checks: Record<string, string> = {};
+  const services: Record<string, unknown> = {};
+  let status: string = "ok";
 
   try {
     await prisma.$queryRaw`SELECT 1`;
-    checks.database = "ok";
-  } catch {
-    checks.database = "error";
+    services.database = { status: "healthy" };
+  } catch (error) {
+    services.database = { status: "unhealthy", error: String(error) };
+    status = "degraded";
   }
 
   try {
     if (redis && redis.status === "ready") {
       await redis.ping();
-      checks.redis = "ok";
+      services.redis = { status: "healthy" };
     } else {
-      checks.redis = "unavailable";
+      services.redis = { status: "unavailable" };
     }
-  } catch {
-    checks.redis = "error";
+  } catch (error) {
+    services.redis = { status: "unhealthy", error: String(error) };
+    status = "degraded";
   }
 
-  const allOk = Object.values(checks).every((s) => s === "ok" || s === "unavailable");
+  const health = { status, timestamp: new Date().toISOString(), version: "2.0.0", services };
 
-  return NextResponse.json(
-    { ok: allOk, ts: Date.now(), checks },
-    { status: allOk ? 200 : 503 }
-  );
+  const statusCode = health.status === "ok" ? 200 : 503;
+  return NextResponse.json(health, { status: statusCode });
 }

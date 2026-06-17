@@ -12,10 +12,7 @@ export const metadata: Metadata = {
   description: "Manage your AIVerse credits and transactions",
 };
 
-const creditPackages = Object.entries(CREDIT_PACKAGES).map(([credits, price]) => ({
-  credits: Number(credits),
-  price,
-}));
+const creditPackages = CREDIT_PACKAGES;
 
 export default async function WalletPage() {
   const session = await requireAuth();
@@ -71,9 +68,9 @@ export default async function WalletPage() {
                       className="w-full p-4 rounded-lg glass border border-light hover:border-purple-500/40 transition-all duration-300 text-left group hover:shadow-[0_0_20px_rgb(106_0_240_/_0.1)]"
                     >
                       <p className="text-lg font-bold text-theme">{formatCredits(pkg.credits)} credits</p>
-                      <p className="text-sm text-secondary">${pkg.price.toFixed(2)}</p>
+                      <p className="text-sm text-secondary">${(pkg.priceCents / 100).toFixed(2)}</p>
                       <p className="text-xs text-purple-400 group-hover:text-stream-400 mt-1 transition-colors">
-                        ${(pkg.price / pkg.credits).toFixed(4)}/credit
+                        ${(pkg.priceCents / 100 / pkg.credits).toFixed(4)}/credit
                       </p>
                     </button>
                   </form>

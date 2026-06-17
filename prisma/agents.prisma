@@ -1,0 +1,129 @@
+model Agent {
+  id            String   @id @default(cuid())
+  creatorId     String
+  name          String
+  slug          String   @unique
+  description   String?  @db.Text
+  category      String
+  status        String   @default("DRAFT")
+  pricingType   String   @default("FREE")
+  creditsPerRun Int      @default(0)
+  modelProvider String   @default("openrouter")
+  modelId       String?
+  systemPrompt  String?  @db.Text
+  toolsConfig   Json?
+  tags          String[]
+  isFeatured    Boolean  @default(false)
+  isFlagged     Boolean  @default(false)
+  totalRuns     Int      @default(0)
+  avgRating     Float?
+  viewCount     Int      @default(0)
+  embedding     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  versions   AgentVersion[]
+  reviews    AgentReview[]
+  executions AgentExecution[]
+  favorites  AgentFavorite[]
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([status, category])
+  @@index([slug])
+  @@index([tags])
+  @@index([name])
+  @@index([isFeatured])
+  @@index([creatorId, status])
+  @@index([totalRuns])
+}
+
+model AgentVersion {
+  id        String   @id @default(cuid())
+  agentId   String
+  version   String
+  changelog String?
+  config    Json?
+  createdAt DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, version])
+  @@index([agentId])
+}
+
+model AgentReview {
+  id           String   @id @default(cuid())
+  agentId      String
+  userId       String
+  rating       Int
+  title        String?
+  body         String?
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, userId])
+  @@index([rating])
+  @@index([createdAt])
+}
+
+model AgentExecution {
+  id          String   @id @default(cuid())
+  agentId     String
+  userId      String
+  sessionId   String?
+  inputTokens Int?
+  outputTokens Int?
+  creditsUsed Float    @default(0)
+  durationMs  Int?
+  status      String   @default("PENDING")
+  modelUsed   String?
+  provider    String?
+  errorLog    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([agentId, userId, createdAt])
+}
+
+model AgentFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  agentId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, agentId])
+  @@index([userId])
+  @@index([agentId])
+}
+
+model AgentTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  category      String
+  systemPrompt  String   @db.Text
+  toolsConfig   Json?
+  modelProvider String   @default("gemini")
+  tags          String[]
+  isFeatured    Boolean  @default(false)
+  usageCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([category])
+  @@index([isFeatured])
+  @@index([usageCount])
+}

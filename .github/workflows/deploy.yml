@@ -44,10 +44,45 @@ jobs:
         env:
           DATABASE_URL: postgresql://aiverse:aiverse@localhost:5432/aiverse_test
 
-  deploy:
+  migration-test:
     runs-on: ubuntu-latest
     needs: ci
-    environment: production
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: aiverse_migration_test
+          POSTGRES_USER: aiverse
+          POSTGRES_PASSWORD: aiverse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      - run: pnpm prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://aiverse:aiverse@localhost:5432/aiverse_migration_test
+      - name: Verify migration state
+        run: pnpm prisma migrate status
+        env:
+          DATABASE_URL: postgresql://aiverse:aiverse@localhost:5432/aiverse_migration_test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: migration-test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -60,6 +95,33 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma generate
       - run: pnpm build
+      - run: |
+          echo "Creating deployment artifact..."
+          tar -czf /tmp/aiverse-build.tar.gz \
+            .next/standalone \
+            .next/static \
+            public \
+            prisma \
+            package.json \
+            pnpm-lock.yaml \
+            docker-compose.prod.yml \
+            Dockerfile.prod \
+            infra \
+            services/ai-gateway
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aiverse-prod-build
+          path: /tmp/aiverse-build.tar.gz
+          retention-days: 3
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: aiverse-prod-build
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
@@ -69,15 +131,37 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/aiverse
-            git pull
-            docker compose -f docker-compose.prod.yml down app
-            docker compose -f docker-compose.prod.yml build app
+
+            # Backup current state
+            docker compose -f docker-compose.prod.yml down --timeout 30 || true
+            tar -czf /tmp/aiverse-backup-$(date +%Y%m%d-%H%M%S).tar.gz . 2>/dev/null || true
+
+            # Extract new build
+            tar -xzf /tmp/aiverse-build.tar.gz -C /tmp/aiverse-new/
+            rsync -a /tmp/aiverse-new/ /opt/aiverse/
+
+            # Run database migrations first (safestep)
+            docker compose -f docker-compose.prod.yml up -d postgres redis pgbouncer
+            sleep 10
+            docker compose -f docker-compose.prod.yml run --rm app sh -c 'npx prisma migrate deploy 2>&1' || {
+              echo "Migration failed - rolling back"
+              docker compose -f docker-compose.prod.yml down
+              exit 1
+            }
+
+            # Start new services
+            docker compose -f docker-compose.prod.yml up -d ai-gateway otel-collector
+            sleep 5
             docker compose -f docker-compose.prod.yml up -d app
-            echo "Waiting for app to start..."
             sleep 15
-            curl -sf http://localhost:3000/api/health || { echo "Health check failed"; exit 1; }
-            echo "Running database migrations..."
-            docker compose -f docker-compose.prod.yml exec -T app sh -c 'npx prisma migrate deploy 2>&1' || { echo "Migration failed - rolling back"; docker compose -f docker-compose.prod.yml down app; exit 1; }
+
+            # Health checks
+            curl -sf http://localhost:3000/api/health || { echo "App health check failed"; exit 1; }
+            curl -sf http://localhost:4001/health || { echo "AI Gateway health check failed"; exit 1; }
+
+            # Restart nginx
+            docker compose -f docker-compose.prod.yml up -d nginx
+
             echo "Pruning old Docker resources..."
             docker system prune -f --filter "until=24h"
             echo "Deployment complete"
@@ -86,7 +170,9 @@ jobs:
         if: always()
         run: |
           STATUS="${{ job.status }}"
-          MESSAGE="AIVerse deployment to main: $STATUS"
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          MESSAGE="AIVerse deployment to main: $STATUS%0ACommit: $COMMIT_MSG"
           curl -sf "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=$MESSAGE" > /dev/null 2>&1 || true
+            -d "text=$MESSAGE" \
+            -d "parse_mode=Markdown" > /dev/null 2>&1 || true
