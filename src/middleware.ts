@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { redis } from "@/lib/redis";
 
 const authPaths = [
   "/api/auth/login",
@@ -13,7 +12,10 @@ const authPaths = [
 const csrfSafeMethods = ["GET", "HEAD", "OPTIONS"];
 const webhookPaths = ["/api/webhooks/stripe", "/api/webhooks/razorpay"];
 
-const g = globalThis as { __rateLimits?: Map<string, { count: number; reset: number }> };
+const g = globalThis as {
+  __rateLimits?: Map<string, { count: number; reset: number }>;
+  redis?: any;
+};
 const rateLimits = g.__rateLimits ?? new Map<string, { count: number; reset: number }>();
 g.__rateLimits = rateLimits;
 
@@ -59,15 +61,41 @@ export async function middleware(request: NextRequest) {
     let resetTime = now + windowMs;
     let usedRedis = false;
 
+    const redis = g.redis;
     if (redis) {
       try {
-        const currentCount = await redis.incr(key);
-        if (currentCount === 1) {
-          await redis.expire(key, windowSeconds);
-        }
-        count = currentCount;
-        const ttl = await redis.ttl(key);
-        resetTime = now + (ttl > 0 ? ttl * 1000 : windowMs);
+        const luaScript = `
+          local key = KEYS[1]
+          local now = tonumber(ARGV[1])
+          local window = tonumber(ARGV[2])
+          local limit = tonumber(ARGV[3])
+          local clearBefore = now - (window * 1000)
+
+          redis.call('ZREMRANGEBYSCORE', key, '-inf', clearBefore)
+          local amount = redis.call('ZCARD', key)
+
+          if amount < limit then
+            redis.call('ZADD', key, now, now)
+            redis.call('EXPIRE', key, window)
+            return {1, limit - amount - 1}
+          else
+            return {0, 0}
+          end
+        `;
+
+        const result = (await redis.eval(
+          luaScript,
+          1,
+          key,
+          String(now),
+          String(windowSeconds),
+          String(maxReqs)
+        )) as [number, number];
+
+        const allowed = result[0] === 1;
+        const remaining = result[1];
+        count = allowed ? maxReqs - remaining : maxReqs + 1;
+        resetTime = now + windowMs;
         usedRedis = true;
       } catch (err) {
         console.warn("Redis rate limiting failed, falling back to memory limit:", err);

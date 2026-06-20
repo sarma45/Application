@@ -41,14 +41,14 @@ export default async function WalletPage() {
             <CardContent className="p-6">
               <p className="text-sm text-secondary mb-1">Available Balance</p>
               <p className="text-4xl font-bold text-theme">
-                {formatCredits(wallet.balance)} <span className="text-lg text-secondary font-normal">credits</span>
+                {formatCredits(Number(wallet.balance))} <span className="text-lg text-secondary font-normal">credits</span>
               </p>
               <div className="flex gap-4 mt-2">
                 <span className="text-sm text-secondary">
-                  Lifetime spent: <span className="text-theme font-mono">{formatCredits(wallet.lifetimeSpent)}</span>
+                  Lifetime spent: <span className="text-theme font-mono">{formatCredits(Number(wallet.lifetimeSpent))}</span>
                 </span>
                 <span className="text-sm text-secondary">
-                  Earned: <span className="text-theme font-mono">{formatCredits(wallet.lifetimeEarned)}</span>
+                  Earned: <span className="text-theme font-mono">{formatCredits(Number(wallet.lifetimeEarned))}</span>
                 </span>
               </div>
             </CardContent>
@@ -98,7 +98,7 @@ export default async function WalletPage() {
                         <p className="text-xs text-muted">{formatDate(tx.createdAt)}</p>
                       </div>
                       <span className={`font-mono ${tx.type === "SPEND" ? "text-red-400" : "text-emerald-400"}`}>
-                        {tx.type === "SPEND" ? "-" : "+"}{formatCredits(tx.amount)}
+                        {tx.type === "SPEND" ? "-" : "+"}{formatCredits(Number(tx.amount))}
                       </span>
                     </div>
                   ))}

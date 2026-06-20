@@ -3,9 +3,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Homepage", () => {
   test("should load the homepage with hero section", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toContainText("Discover, deploy, and");
+    await expect(page.locator("h1")).toContainText("The Future of");
+    await expect(page.locator("p").first()).toContainText("Discover, deploy, and");
     await expect(page.locator("text=Explore Agents")).toBeVisible();
-    await expect(page.locator("text=Publish Agent")).toBeVisible();
   });
 
   test("should display agent categories", async ({ page }) => {

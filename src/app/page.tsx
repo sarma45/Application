@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { NeuralText } from "@/components/effects/neural-text";
 import { prisma } from "@/lib/prisma";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
+import HeroSection from "@/components/landing/HeroSection";
+import { AgentCard3D } from "@/components/ui/AgentCard3D";
 
 export const dynamic = "force-dynamic";
 
@@ -36,65 +38,7 @@ export default async function HomePage() {
 
   return (
     <div className="overflow-x-hidden">
-      <section className="relative overflow-hidden border-b border-light min-h-[90vh] flex items-center">
-        <div className="absolute inset-0 bg-gradient-radial from-purple-900/10 via-transparent to-transparent" />
-        <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-          <svg className="absolute -top-40 -right-40 w-[300px] md:w-[600px] h-[300px] md:h-[600px] opacity-10 animate-float" viewBox="0 0 150 100">
-            <path d={morphingBlobs[0]} fill="url(#neuralGrad)" />
-            <defs>
-              <linearGradient id="neuralGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgb(106,0,240)" />
-                <stop offset="100%" stopColor="rgb(0,230,204)" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <svg className="absolute -bottom-20 -left-20 w-[200px] md:w-[400px] h-[200px] md:h-[400px] opacity-10 animate-float" style={{ animationDelay: "-2s" }} viewBox="0 0 150 100">
-            <path d={morphingBlobs[1]} fill="url(#neuralGrad2)" />
-            <defs>
-              <linearGradient id="neuralGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="rgb(0,230,204)" />
-                <stop offset="100%" stopColor="rgb(106,0,240)" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div className="container-main relative py-24 md:py-32">
-          <div className="mx-auto max-w-4xl text-center">
-            <Badge variant="purple" className="mb-6 animate-float">
-              <span className="mr-1.5 inline-block w-1.5 h-1.5 rounded-full bg-purple-400 neural-pulse" />
-              AI Agent Marketplace
-            </Badge>
-            <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-theme leading-tight">
-              Discover, deploy, and<br />
-              <NeuralText as="span" className="inline-block mt-2">
-                monetize AI agents
-              </NeuralText>
-            </h1>
-            <p className="mt-6 text-lg md:text-xl text-secondary max-w-2xl mx-auto">
-              The unified hub where creators publish agents, developers build tools,
-              and businesses deploy governed AI workflows.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
-              <Link href="/agents">
-                <Button size="lg" className="neural-glow">
-                  Explore Agents
-                  <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Button>
-              </Link>
-              <Link href="/agents/create">
-                <Button variant="secondary" size="lg">
-                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Publish Agent
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       <section className="container-main py-20 scroll-reveal">
         <div className="text-center mb-12">
@@ -104,13 +48,13 @@ export default async function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {categories.map((cat, i) => (
             <Link key={cat.slug} href={`/agents?category=${cat.slug}`} style={{ animationDelay: `${i * 0.1}s` }}>
-              <Card className="p-6 group cursor-pointer">
+              <AgentCard3D className="p-6 group cursor-pointer">
                 <span className="text-3xl block transition-transform duration-300 group-hover:scale-110 group-hover:animate-float">{cat.icon}</span>
                 <h3 className="mt-4 font-semibold text-theme group-hover:neural-text transition-all duration-300">
                   {cat.label}
                 </h3>
                 <p className="mt-1 text-sm text-secondary">{cat.desc}</p>
-              </Card>
+              </AgentCard3D>
             </Link>
           ))}
         </div>
@@ -135,7 +79,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredAgents.map((agent: any) => (
               <Link key={agent.id} href={`/agents/${agent.slug}`}>
-                <Card className="p-5 group h-full">
+                <AgentCard3D className="p-5 group h-full">
                   <div className="flex items-start justify-between mb-3">
                     <Badge variant={agent.category === "CHAT" ? "purple" : agent.category === "CODE" ? "success" : agent.category === "DATA" ? "warning" : "default"}>
                       {agent.category}
@@ -154,7 +98,7 @@ export default async function HomePage() {
                       <span>{agent.creditsPerRun} credits</span>
                     )}
                   </div>
-                </Card>
+                </AgentCard3D>
               </Link>
             ))}
           </div>

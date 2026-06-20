@@ -110,7 +110,7 @@ export default function FeaturesSection() {
               transition={{ duration: 0.5, delay: 0.1 * i }}
             >
               <div
-                className={`group relative p-6 rounded-2xl border border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm transition-all duration-500 hover:scale-[1.02] ${feature.border}`}
+                className={`group relative p-6 rounded-2xl glass-card transition-all duration-500 hover:scale-[1.02] hover:glass-card-hover ${feature.border}`}
               >
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 

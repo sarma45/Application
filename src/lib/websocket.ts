@@ -3,10 +3,10 @@ import { WebSocketServer, WebSocket } from "ws";
 import { IncomingMessage } from "http";
 import { parse } from "url";
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { complete } from "@/lib/ai/gateway";
 import { checkSafety, sanitizeInput } from "@/lib/ai/safety";
+import { enqueueExecutionLog } from "@/lib/queue";
 
 interface WSClient {
   ws: WebSocket;
@@ -114,18 +114,16 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
             },
           }));
 
-          await prisma.agentExecution.create({
-            data: {
-              agentId: "websocket-chat",
-              userId,
-              sessionId,
-              inputTokens: result.usage.promptTokens,
-              outputTokens: result.usage.completionTokens,
-              creditsUsed: 0,
-              status: "COMPLETED",
-              modelUsed: result.model,
-              provider: result.provider,
-            },
+          await enqueueExecutionLog({
+            agentId: "websocket-chat",
+            userId,
+            sessionId,
+            inputTokens: result.usage.promptTokens,
+            outputTokens: result.usage.completionTokens,
+            creditsUsed: 0,
+            status: "COMPLETED",
+            modelUsed: result.model,
+            provider: result.provider,
           }).catch(() => {});
         }
       } catch (error) {

@@ -7,6 +7,7 @@ import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from "@/lib/redis";
 import { createAgentSchema, listAgentsSchema } from "@/lib/validations";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import { unauthorized, serverError } from "@/lib/api-helpers";
+import { encryptField, decryptField } from "@/lib/encryption";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
 
     const { name, category, systemPrompt, pricingType, creditsPerRun, modelProvider, modelId } = parsed.data;
     const baseSlug = slugify(name);
+    const encryptedPrompt = encryptField(systemPrompt || "");
 
     let agent;
     try {
@@ -61,7 +63,7 @@ export async function POST(req: Request) {
           slug: baseSlug,
           category,
           status: "DRAFT",
-          systemPrompt: systemPrompt || "",
+          systemPrompt: encryptedPrompt || "",
           pricingType: pricingType || "FREE",
           creditsPerRun: creditsPerRun || 0,
           modelProvider: modelProvider || "gemini",
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
             slug: `${baseSlug}-${suffix}`,
             category,
             status: "DRAFT",
-            systemPrompt: systemPrompt || "",
+            systemPrompt: encryptedPrompt || "",
             pricingType: pricingType || "FREE",
             creditsPerRun: creditsPerRun || 0,
             modelProvider: modelProvider || "gemini",
@@ -95,14 +97,15 @@ export async function POST(req: Request) {
         agentId: agent.id,
         version: "1.0.0",
         changelog: "Initial version",
-        config: { name, category, systemPrompt, pricingType, creditsPerRun },
+        config: { name, category, systemPrompt: encryptedPrompt, pricingType, creditsPerRun },
       },
     });
 
     await cacheDel("home:featured");
     await cacheDel(`agents:${category}:page1`);
 
-    generateEmbedding(`${agent.name} ${agent.systemPrompt}`).then((embedding) => {
+    const decryptedPrompt = decryptField(agent.systemPrompt) || "";
+    generateEmbedding(`${agent.name} ${decryptedPrompt}`).then((embedding) => {
       if (embedding.length > 0) {
         prisma.$executeRawUnsafe(`UPDATE "Agent" SET embedding = $1::vector WHERE id = $2`, JSON.stringify(embedding), agent.id).catch(() => {});
       }

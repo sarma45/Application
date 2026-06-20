@@ -16,8 +16,6 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export const stripe: Stripe | null = null; // Deprecated, use getStripe() instead
-
 export const CREDIT_PACKAGES = [
   { credits: 100, priceCents: 499, label: "Starter" },
   { credits: 500, priceCents: 1999, label: "Popular" },

@@ -40,9 +40,11 @@ app.post("/v1/complete", async (req: any, res: any) => {
     });
 
     return res.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Completion error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    const status = error.status || 500;
+    const message = error.message || "Internal server error";
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ error: message });
   }
 });
 

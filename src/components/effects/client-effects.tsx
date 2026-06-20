@@ -1,14 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-
-const NeuralBackground = dynamic(
-  () => import("@/components/effects/neural-background").then((m) => m.NeuralBackground),
-  { ssr: false }
-);
-
-const NeuralParticles = dynamic(
-  () => import("@/components/effects/neural-particles").then((m) => m.NeuralParticles),
+const UnifiedSceneProvider = dynamic(
+  () => import("@/components/effects/UnifiedScene").then((m) => m.UnifiedSceneProvider),
   { ssr: false }
 );
 
@@ -19,10 +13,8 @@ const PageTransition = dynamic(
 
 export function ClientEffects({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <NeuralBackground />
-      <NeuralParticles />
+    <UnifiedSceneProvider>
       <PageTransition>{children}</PageTransition>
-    </>
+    </UnifiedSceneProvider>
   );
 }

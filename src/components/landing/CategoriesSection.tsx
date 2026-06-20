@@ -102,7 +102,7 @@ export default function CategoriesSection() {
             >
               <Link href={`/agents?category=${cat.slug}`}>
                 <div
-                  className={`group relative p-5 md:p-8 rounded-2xl border border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm transition-all duration-500 hover:scale-[1.01] hover:border-zinc-700/50 ${cat.glow} hover:shadow-xl`}
+                  className={`group relative p-5 md:p-8 rounded-2xl glass-card transition-all duration-500 hover:scale-[1.01] hover:glass-card-hover ${cat.glow} hover:shadow-xl`}
                 >
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 

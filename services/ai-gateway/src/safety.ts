@@ -1,12 +1,4 @@
 import type { SafetyResult } from "./types.js";
-import Redis from "ioredis";
-
-const redisUrl = process.env.REDIS_URL || "redis://:aiverse@localhost:6379";
-const redis = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 3 }) : null;
-
-if (redis) {
-  redis.on("error", () => {});
-}
 
 const injectionPatterns = [
   /ignore\s+(all\s+)?(previous|above|prior)\s+instructions/i,

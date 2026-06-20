@@ -63,7 +63,7 @@ export default async function AnalyticsPage() {
           <CardContent className="p-5">
             <p className="text-sm text-secondary">Lifetime Earned</p>
             <p className="text-2xl font-bold text-emerald-400 mt-1">
-              {formatCredits(totalEarnings?.lifetimeEarned || 0)} credits
+              {formatCredits(Number(totalEarnings?.lifetimeEarned || 0))} credits
             </p>
           </CardContent>
         </Card>

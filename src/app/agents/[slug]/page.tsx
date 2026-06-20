@@ -9,6 +9,7 @@ import { AgentRunner } from "@/components/agent/agent-runner";
 import { ReviewForm } from "@/components/agent/review-form";
 import { NeuralText } from "@/components/effects/neural-text";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
+import { decryptField } from "@/lib/encryption";
 
 interface AgentDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -54,7 +55,12 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
         reviews: { include: { user: { select: { username: true } } }, take: 5, orderBy: { createdAt: "desc" } },
       },
     }) as unknown as AgentDetail | null;
-    if (agent) await cacheSet(cacheKey, agent, CACHE_TTL.AGENT_DETAIL);
+    if (agent) {
+      if (agent.systemPrompt) {
+        agent.systemPrompt = decryptField(agent.systemPrompt);
+      }
+      await cacheSet(cacheKey, agent, CACHE_TTL.AGENT_DETAIL);
+    }
   }
 
   if (!agent) notFound();

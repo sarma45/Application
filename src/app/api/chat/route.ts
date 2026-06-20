@@ -5,7 +5,7 @@ import { complete } from '@/lib/ai/gateway';
 import { chatSchema } from '@/lib/validations';
 import { checkSafety, sanitizeInput } from '@/lib/ai/safety';
 import { logger } from '@/lib/logger';
-import { unauthorized, badRequest, serverError } from '@/lib/api-helpers';
+import { unauthorized, badRequest, serverError, apiError } from '@/lib/api-helpers';
 
 export const runtime = 'nodejs';
 
@@ -41,8 +41,11 @@ export async function POST(req: Request) {
       provider: result.provider,
       model: result.model
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('chat route error', { error: String(error) });
+    if (error && error.status >= 400 && error.status < 500) {
+      return apiError(error.message || 'Client error', 'BAD_REQUEST', error.status);
+    }
     return serverError();
   }
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import Link from "next/link";
 
 const footerLinks = [
@@ -32,10 +34,18 @@ const footerLinks = [
 ];
 
 export default function FooterSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+
   return (
-    <footer className="relative border-t border-zinc-800/50 bg-zinc-950">
+    <footer ref={ref} className="relative border-t border-zinc-800/50 bg-zinc-950">
       <div className="container-main py-16">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8 }}
+          className="grid grid-cols-2 md:grid-cols-5 gap-8"
+        >
           <div className="col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-cyan-600 flex items-center justify-center">
@@ -50,8 +60,13 @@ export default function FooterSection() {
             </p>
           </div>
 
-          {footerLinks.map((group) => (
-            <div key={group.title}>
+          {footerLinks.map((group, i) => (
+            <motion.div
+              key={group.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: 0.1 * (i + 1) }}
+            >
               <h4 className="text-sm font-semibold text-zinc-300 mb-4">{group.title}</h4>
               <ul className="space-y-2.5">
                 {group.links.map((link) => (
@@ -65,11 +80,16 @@ export default function FooterSection() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
-        <div className="mt-12 pt-8 border-t border-zinc-800/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="mt-12 pt-8 border-t border-zinc-800/30 flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
           <p className="text-xs text-zinc-600">
             &copy; {new Date().getFullYear()} AIVerse. All rights reserved.
           </p>
@@ -89,7 +109,7 @@ export default function FooterSection() {
               </Link>
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
     </footer>
   );

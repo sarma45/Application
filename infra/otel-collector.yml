@@ -10,9 +10,11 @@ exporters:
   debug:
     verbosity: basic
   otlphttp:
-    endpoint: "${OTLP_HTTP_ENDPOINT}"
+    endpoint: "${OTLP_HTTP_ENDPOINT:-http://localhost:4318}"
     tls:
       insecure: true
+  logging:
+    loglevel: warn
 
 processors:
   batch:
@@ -26,14 +28,25 @@ processors:
       - key: environment
         value: "${NODE_ENV:-development}"
         action: upsert
+  resourcedetection:
+    detectors: [env]
+    timeout: 5s
+
+connectors:
+  healthcheck:
+    endpoint: 0.0.0.0:13133
 
 service:
+  extensions: [healthcheck]
+  telemetry:
+    metrics:
+      address: 0.0.0.0:8888
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch, attributes]
-      exporters: [debug]
+      processors: [memory_limiter, resourcedetection, batch, attributes]
+      exporters: [otlphttp, debug]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch, attributes]
-      exporters: [debug]
+      processors: [memory_limiter, resourcedetection, batch, attributes]
+      exporters: [otlphttp, debug]

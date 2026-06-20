@@ -70,6 +70,42 @@ export async function enqueuePayoutBatch() {
   }
 }
 
+let swarmQueue: Queue | null = null;
+
+function getSwarmQueue(): Queue | null {
+  if (!redis) return null;
+  if (!swarmQueue) {
+    try {
+      swarmQueue = new Queue("agent-swarm-execution", {
+        connection: redis as any,
+      });
+    } catch {
+      return null;
+    }
+  }
+  return swarmQueue;
+}
+
+export interface SwarmJob {
+  agentId: string;
+  userId: string;
+  sessionId: string;
+  input: string;
+}
+
+export async function enqueueAgentSwarm(job: SwarmJob) {
+  const queue = getSwarmQueue();
+  if (!queue) return;
+  try {
+    await queue.add("execute-swarm", job, {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 2000 },
+    });
+  } catch {
+    // silently ignore if Redis is unavailable
+  }
+}
+
 export async function closeQueue() {
   if (executionQueue) {
     await executionQueue.close();
@@ -78,5 +114,9 @@ export async function closeQueue() {
   if (payoutQueue) {
     await payoutQueue.close();
     payoutQueue = null;
+  }
+  if (swarmQueue) {
+    await swarmQueue.close();
+    swarmQueue = null;
   }
 }

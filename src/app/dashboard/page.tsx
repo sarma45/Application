@@ -41,7 +41,7 @@ export default async function DashboardPage() {
               <svg className="h-4 w-4 text-stream-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {formatCredits(wallet.balance)}
+              {formatCredits(Number(wallet.balance))}
             </div>
           )}
         </div>
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
         {[
           { label: "Total Runs", value: recentExecutions.length, icon: "run" },
           { label: "My Agents", value: agents.length, icon: "agent" },
-          { label: "Credits", value: wallet ? formatCredits(wallet.balance) : "0", icon: "credit" },
+          { label: "Credits", value: wallet ? formatCredits(Number(wallet.balance)) : "0", icon: "credit" },
         ].map((stat) => (
           <Card key={stat.label} className="p-5">
             <div className="flex items-center justify-between mb-2">
@@ -147,7 +147,7 @@ export default async function DashboardPage() {
                         <p className="text-xs text-secondary">{formatDate(exec.createdAt)}</p>
                       </div>
                       <div className="text-right text-xs text-secondary">
-                        <p>{exec.creditsUsed} credits</p>
+                        <p>{Number(exec.creditsUsed)} credits</p>
                         <Badge variant={exec.status === "COMPLETED" ? "success" : "danger"}>{exec.status}</Badge>
                       </div>
                     </div>

@@ -10,10 +10,11 @@ import type { CompletionParams } from "@/lib/ai/providers";
 import { cacheDel } from "@/lib/redis";
 import { executeSchema } from "@/lib/validations";
 import { checkSafety, sanitizeInput } from "@/lib/ai/safety";
-import { enqueueExecutionLog } from "@/lib/queue";
+import { enqueueExecutionLog, enqueueAgentSwarm } from "@/lib/queue";
 import { logger } from "@/lib/logger";
 import { unauthorized, badRequest, forbidden, notFound, paymentRequired, serverError } from "@/lib/api-helpers";
 import { rateLimit } from "@/lib/rate-limit";
+import { decryptField } from "@/lib/encryption";
 
 export const runtime = "nodejs";
 
@@ -204,13 +205,198 @@ export async function POST(
 
     if (!isTestMode && cost > 0) {
       const wallet = await prisma.wallet.findUnique({ where: { userId: session.user.id }, select: { balance: true } });
-      if (!wallet || wallet.balance < cost) {
+      if (!wallet || Number(wallet.balance) < cost) {
         return paymentRequired("Insufficient credits. Please top up your wallet.");
       }
     }
 
-    const systemPromptToUse = systemPrompt || agent.systemPrompt || "You are a helpful AI assistant.";
+    const decryptedSystemPrompt = decryptField(agent.systemPrompt);
+    const systemPromptToUse = systemPrompt || decryptedSystemPrompt || "You are a helpful AI assistant.";
     const agentCategory: AgentCategory = (category || agent.category) as AgentCategory;
+
+    if (agentCategory === "WORKFLOW") {
+      const sessionId = clientSessionId || `${session.user.id}:${agent.id}:${Date.now()}`;
+      
+      // Enqueue job to Swarm Service queue
+      await enqueueAgentSwarm({
+        agentId: agent.id,
+        userId: session.user.id,
+        sessionId,
+        input: safeMessage,
+      });
+
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: "🤖 **Orchestrator**: Handing off to the Agent Swarm Execution worker...\n\n" })}\n\n`));
+
+          if (!redis) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Redis not available to retrieve live swarm logs." })}\n\n`));
+            controller.close();
+            return;
+          }
+
+          // Duplicate Redis connection to use for subscription
+          const subClient = redis.duplicate();
+          
+          try {
+            await subClient.connect().catch(() => {});
+            await subClient.subscribe(`swarm:${sessionId}:logs`, `swarm:${sessionId}:status`);
+            
+            subClient.on("message", async (channel, message) => {
+              try {
+                const data = JSON.parse(message);
+                if (channel.endsWith(":logs")) {
+                  const { agentRole, message: stepMessage } = data.payload || {};
+                  
+                  // Map roles to nice cyberpunk emojis
+                  let emoji = "🤖";
+                  if (agentRole.includes("Researcher")) emoji = "🔍";
+                  else if (agentRole.includes("Coder")) emoji = "💻";
+                  else if (agentRole.includes("Verifier")) emoji = "⚙️";
+                  else if (agentRole.includes("System")) emoji = "⚡";
+
+                  const formattedText = `\n**${emoji} ${agentRole}**:\n${stepMessage}\n\n`;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: formattedText })}\n\n`));
+                } else if (channel.endsWith(":status")) {
+                  if (data.type === "complete") {
+                    const report = data.payload?.report || "";
+                    const durationMs = data.payload?.durationMs || (Date.now() - startTime);
+                    const executionId = `${session.user.id}:${agent.id}:${Date.now()}`;
+
+                    // Perform billing & accounting
+                    if (!isTestMode && cost > 0) {
+                      try {
+                        await prisma.$transaction(async (tx) => {
+                          const updated = await tx.wallet.update({
+                            where: { userId: session.user.id, balance: { gte: cost } },
+                            data: { balance: { decrement: cost }, lifetimeSpent: { increment: cost } },
+                          });
+                          await tx.transaction.create({
+                            data: {
+                              userId: session.user.id,
+                              type: "SPEND",
+                              amount: cost,
+                              balanceAfter: updated.balance,
+                              referenceType: "AgentExecution",
+                              referenceId: executionId,
+                            },
+                          });
+                          await tx.agent.update({
+                            where: { id: agent.id },
+                            data: { totalRuns: { increment: 1 } },
+                          });
+                        });
+                      } catch (deductErr) {
+                        logger.error("credit deduction failed after workflow execution", { userId: session.user.id, cost, error: deductErr });
+                      }
+                    }
+
+                    if (!isTestMode) {
+                      await creditCreator(agent.creatorId, cost, executionId);
+
+                      if (cost <= 0) {
+                        try {
+                          await prisma.agent.update({
+                            where: { id: agent.id },
+                            data: { totalRuns: { increment: 1 } },
+                          });
+                        } catch {}
+                      }
+
+                      // Save conversation history
+                      await appendHistory(sessionId, { role: "user", content: safeMessage });
+                      await appendHistory(sessionId, { role: "assistant", content: report });
+
+                      // Increment free tier counter atomically
+                      await incrementFreeTierCounter(session.user.id);
+
+                      // Queue async execution log
+                      enqueueExecutionLog({
+                        agentId: agent.id,
+                        userId: session.user.id,
+                        sessionId,
+                        creditsUsed: cost,
+                        durationMs,
+                        status: "COMPLETED",
+                        modelUsed: "swarm-orchestration",
+                        provider: "swarm",
+                      });
+
+                      await cacheDel(`agent:${slug}`);
+                      if (cost > 0) await cacheDel(`wallet:${session.user.id}`);
+                    }
+
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: `\n✅ **Swarm Verification Successful**:\n${report}\n\n` })}\n\n`));
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ sessionId, done: true })}\n\n`));
+                    controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                    
+                    subClient.unsubscribe();
+                    subClient.quit().catch(() => {});
+                    controller.close();
+                  } else if (data.type === "failed") {
+                    const errorMsg = data.payload?.error || "Unknown swarm error";
+                    const durationMs = Date.now() - startTime;
+                    
+                    if (!isTestMode) {
+                      enqueueExecutionLog({
+                        agentId: agent.id,
+                        userId: session.user.id,
+                        sessionId,
+                        creditsUsed: 0,
+                        durationMs,
+                        status: "FAILED",
+                        modelUsed: "swarm-orchestration",
+                        provider: "swarm",
+                        errorLog: errorMsg,
+                      });
+                    }
+
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: `\n❌ **Swarm Execution Failed**:\n${errorMsg}\n\n` })}\n\n`));
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ sessionId, done: true })}\n\n`));
+                    controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                    
+                    subClient.unsubscribe();
+                    subClient.quit().catch(() => {});
+                    controller.close();
+                  }
+                }
+              } catch (parseErr) {
+                // skip bad JSON
+              }
+            });
+
+            // Set a liveness timeout in case the swarm gets stuck (e.g. 180s)
+            const timeoutId = setTimeout(() => {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Swarm execution timeout reached (180s)." })}\n\n`));
+              subClient.unsubscribe();
+              subClient.quit().catch(() => {});
+              controller.close();
+            }, 180000);
+
+            // Clean up when stream is cancelled
+            req.signal.addEventListener("abort", () => {
+              clearTimeout(timeoutId);
+              subClient.unsubscribe();
+              subClient.quit().catch(() => {});
+            });
+
+          } catch (subErr: any) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Failed to subscribe: ${subErr.message}` })}\n\n`));
+            subClient.quit().catch(() => {});
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
 
     // Use model override if provided, otherwise fall back to category routing
     const routes = modelProvider && modelId

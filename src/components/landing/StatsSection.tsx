@@ -76,7 +76,7 @@ export default function StatsSection() {
               animate={isInView ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.5, delay: 0.08 * i }}
             >
-              <div className="relative p-6 rounded-2xl border border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm text-center group hover:border-zinc-700/50 transition-all duration-300 hover:scale-105">
+              <div className="relative p-6 rounded-2xl glass-card text-center group hover:glass-card-hover transition-all duration-300 hover:scale-105">
                 <span className="text-3xl mb-3 block">{stat.icon}</span>
                 <div className="text-2xl md:text-3xl font-bold text-white mb-1 tabular-nums">
                   <AnimatedCounter value={stat.value} suffix={stat.suffix} />

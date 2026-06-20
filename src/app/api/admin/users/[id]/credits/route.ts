@@ -41,10 +41,10 @@ export async function POST(
     const updated = await prisma.wallet.update({
       where: { userId: id },
       data: {
-        balance: wallet.balance + amount,
+        balance: Number(wallet.balance) + amount,
         ...(amount > 0
-          ? { lifetimeEarned: wallet.lifetimeEarned + amount }
-          : { lifetimeSpent: wallet.lifetimeSpent + Math.abs(amount) }),
+          ? { lifetimeEarned: Number(wallet.lifetimeEarned) + amount }
+          : { lifetimeSpent: Number(wallet.lifetimeSpent) + Math.abs(amount) }),
       },
     });
 

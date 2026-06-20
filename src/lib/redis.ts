@@ -30,9 +30,7 @@ function createRedis(): Redis | null {
 
 export const redis: Redis | null = globalForRedis.redis ?? createRedis();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForRedis.redis = redis ?? undefined;
-}
+globalForRedis.redis = redis ?? undefined;
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
   const r = redis;

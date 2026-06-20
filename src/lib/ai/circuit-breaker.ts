@@ -1,3 +1,5 @@
+import { redis } from "@/lib/redis";
+
 export type CircuitState = "CLOSED" | "OPEN" | "HALF_OPEN";
 
 interface CircuitBreakerConfig {
@@ -15,7 +17,8 @@ interface CircuitStateData {
   openedAt: number | null;
 }
 
-const circuits = new Map<string, CircuitStateData>();
+const REDIS_KEY_PREFIX = "circuit:";
+const localCircuits = new Map<string, CircuitStateData>();
 
 const defaultConfig: CircuitBreakerConfig = {
   failureThreshold: 5,
@@ -24,9 +27,18 @@ const defaultConfig: CircuitBreakerConfig = {
   name: "default",
 };
 
-function getCircuit(name: string): CircuitStateData {
-  if (!circuits.has(name)) {
-    circuits.set(name, {
+async function getCircuit(name: string): Promise<CircuitStateData> {
+  if (redis && redis.status === "ready") {
+    try {
+      const data = await redis.get(`${REDIS_KEY_PREFIX}${name}`);
+      if (data) return JSON.parse(data);
+    } catch {
+      // fall through to local
+    }
+  }
+
+  if (!localCircuits.has(name)) {
+    localCircuits.set(name, {
       state: "CLOSED",
       failures: 0,
       successes: 0,
@@ -34,15 +46,27 @@ function getCircuit(name: string): CircuitStateData {
       openedAt: null,
     });
   }
-  return circuits.get(name)!;
+  return localCircuits.get(name)!;
 }
 
-export function getCircuitState(name: string): CircuitState {
-  return getCircuit(name).state;
+async function saveCircuit(name: string, data: CircuitStateData): Promise<void> {
+  localCircuits.set(name, data);
+  if (redis && redis.status === "ready") {
+    try {
+      await redis.setex(`${REDIS_KEY_PREFIX}${name}`, 300, JSON.stringify(data));
+    } catch {
+      // silently fail
+    }
+  }
 }
 
-export function isCircuitOpen(name: string): boolean {
-  const circuit = getCircuit(name);
+export async function getCircuitState(name: string): Promise<CircuitState> {
+  const circuit = await getCircuit(name);
+  return circuit.state;
+}
+
+export async function isCircuitOpen(name: string): Promise<boolean> {
+  const circuit = await getCircuit(name);
   if (circuit.state === "CLOSED") return false;
 
   if (circuit.state === "OPEN" && circuit.openedAt) {
@@ -50,6 +74,7 @@ export function isCircuitOpen(name: string): boolean {
     if (elapsed >= defaultConfig.timeoutMs) {
       circuit.state = "HALF_OPEN";
       circuit.successes = 0;
+      await saveCircuit(name, circuit);
       return false;
     }
     return true;
@@ -58,8 +83,8 @@ export function isCircuitOpen(name: string): boolean {
   return circuit.state === "OPEN";
 }
 
-export function recordSuccess(name: string): void {
-  const circuit = getCircuit(name);
+export async function recordSuccess(name: string): Promise<void> {
+  const circuit = await getCircuit(name);
   if (circuit.state === "HALF_OPEN") {
     circuit.successes++;
     if (circuit.successes >= defaultConfig.successThreshold) {
@@ -72,10 +97,11 @@ export function recordSuccess(name: string): void {
   } else if (circuit.state === "CLOSED") {
     circuit.failures = 0;
   }
+  await saveCircuit(name, circuit);
 }
 
-export function recordFailure(name: string): void {
-  const circuit = getCircuit(name);
+export async function recordFailure(name: string): Promise<void> {
+  const circuit = await getCircuit(name);
   circuit.failures++;
   circuit.lastFailureTime = Date.now();
 
@@ -86,10 +112,18 @@ export function recordFailure(name: string): void {
     circuit.state = "OPEN";
     circuit.openedAt = Date.now();
   }
+  await saveCircuit(name, circuit);
 }
 
-export function resetCircuit(name: string): void {
-  circuits.delete(name);
+export async function resetCircuit(name: string): Promise<void> {
+  localCircuits.delete(name);
+  if (redis && redis.status === "ready") {
+    try {
+      await redis.del(`${REDIS_KEY_PREFIX}${name}`);
+    } catch {
+      // silently fail
+    }
+  }
 }
 
 export async function circuitBreakerWrapper<T>(
@@ -97,16 +131,16 @@ export async function circuitBreakerWrapper<T>(
   fn: () => Promise<T>,
   fallback: () => Promise<T>
 ): Promise<T> {
-  if (isCircuitOpen(name)) {
+  if (await isCircuitOpen(name)) {
     return fallback();
   }
 
   try {
     const result = await fn();
-    recordSuccess(name);
+    await recordSuccess(name);
     return result;
   } catch (error) {
-    recordFailure(name);
+    await recordFailure(name);
     return fallback();
   }
 }

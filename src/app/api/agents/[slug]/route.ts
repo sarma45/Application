@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { cacheGet, cacheSet, cacheDel, CACHE_TTL } from "@/lib/redis";
 import { updateAgentSchema } from "@/lib/validations";
 import { generateEmbedding } from "@/lib/ai/embeddings";
+import { encryptField, decryptField } from "@/lib/encryption";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,10 @@ export async function GET(
 
   if (!agent) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+  }
+
+  if (agent.systemPrompt) {
+    agent.systemPrompt = decryptField(agent.systemPrompt);
   }
 
   await cacheSet(`agent:${slug}`, agent, CACHE_TTL.AGENT_DETAIL);
@@ -71,6 +76,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Agent not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
+    if (parsed.data.systemPrompt !== undefined) {
+      parsed.data.systemPrompt = encryptField(parsed.data.systemPrompt) || undefined;
+    }
+
     const updated = await prisma.agent.update({
       where: { id: agent.id },
       data: parsed.data,
@@ -96,12 +105,17 @@ export async function PATCH(
 
     await cacheDel(`agent:${slug}`);
 
-    const textForEmbedding = `${updated.name} ${updated.systemPrompt}`;
+    const decryptedPrompt = decryptField(updated.systemPrompt) || "";
+    const textForEmbedding = `${updated.name} ${decryptedPrompt}`;
     generateEmbedding(textForEmbedding).then((embedding) => {
       if (embedding.length > 0) {
         prisma.$executeRawUnsafe(`UPDATE "Agent" SET embedding = $1::vector WHERE id = $2`, JSON.stringify(embedding), agent.id).catch(() => {});
       }
     });
+
+    if (updated.systemPrompt) {
+      updated.systemPrompt = decryptField(updated.systemPrompt);
+    }
 
     return NextResponse.json({ ok: true, agent: updated });
   } catch (error) {
