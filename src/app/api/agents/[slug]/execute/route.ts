@@ -106,8 +106,16 @@ async function creditCreator(agentCreatorId: string, cost: number, executionId: 
     await prisma.$transaction(async (tx) => {
       const updated = await tx.wallet.upsert({
         where: { userId: agentCreatorId },
-        update: { balance: { increment: share } },
-        create: { userId: agentCreatorId, balance: share, lifetimeEarned: 0, lifetimeSpent: 0 },
+        update: {
+          balance: { increment: share },
+          lifetimeEarned: { increment: share },
+        },
+        create: {
+          userId: agentCreatorId,
+          balance: share,
+          lifetimeEarned: share,
+          lifetimeSpent: 0,
+        },
       });
       await tx.transaction.create({
         data: {

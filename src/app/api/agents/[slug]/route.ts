@@ -67,6 +67,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (parsed.data.status !== undefined && parsed.data.status !== "DRAFT" && !["ADMIN", "MODERATOR"].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: Cannot set status directly" }, { status: 403 });
+    }
+
     const currentAgent = await prisma.agent.findUnique({
       where: { id: agent.id },
       select: { name: true, category: true, systemPrompt: true, pricingType: true, creditsPerRun: true, toolsConfig: true },

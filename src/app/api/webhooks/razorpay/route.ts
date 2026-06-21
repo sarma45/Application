@@ -80,7 +80,7 @@ export async function POST(req: Request) {
             where: { userId: pendingPayment.userId },
             data: {
               balance: { increment: creditsToGrant },
-              lifetimeSpent: { increment: creditsToGrant },
+              lifetimeEarned: { increment: creditsToGrant },
             },
           });
 

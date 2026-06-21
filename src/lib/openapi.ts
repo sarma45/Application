@@ -64,15 +64,15 @@ function zodToOpenAPIType(zodType: z.ZodTypeAny): Record<string, unknown> {
   }
   if (zodType instanceof z.ZodBoolean) return { type: "boolean" };
   if (zodType instanceof z.ZodEnum) {
-    return { type: "string", enum: zodType._def.values };
+    return { type: "string", enum: zodType.options };
   }
   if (zodType instanceof z.ZodArray) {
-    return { type: "array", items: zodToOpenAPIType(zodType._def.type) };
+    return { type: "array", items: zodToOpenAPIType(zodType.element as any) };
   }
   if (zodType instanceof z.ZodObject) {
     const properties: Record<string, unknown> = {};
     const required: string[] = [];
-    for (const [key, value] of Object.entries(zodType._def.shape())) {
+    for (const [key, value] of Object.entries(zodType.shape)) {
       properties[key] = zodToOpenAPIType(value as z.ZodTypeAny);
       if (!(value instanceof z.ZodOptional) && !(value instanceof z.ZodDefault)) {
         required.push(key);
@@ -81,10 +81,10 @@ function zodToOpenAPIType(zodType: z.ZodTypeAny): Record<string, unknown> {
     return { type: "object", properties, ...(required.length ? { required } : {}) };
   }
   if (zodType instanceof z.ZodOptional) {
-    return zodToOpenAPIType(zodType._def.innerType);
+    return zodToOpenAPIType(zodType.unwrap() as any);
   }
   if (zodType instanceof z.ZodDefault) {
-    const schema = zodToOpenAPIType(zodType._def.innerType);
+    const schema = zodToOpenAPIType(zodType._def.innerType as any);
     if (zodType._def.defaultValue !== undefined) {
       schema.default = typeof zodType._def.defaultValue === "function"
         ? zodType._def.defaultValue()

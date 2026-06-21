@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         where: { userId: targetUserId },
         data: {
           balance: { increment: amount },
-          ...(amount > 0 ? { lifetimeSpent: { increment: amount } } : { lifetimeEarned: { increment: Math.abs(amount) } }),
+          ...(amount > 0 ? { lifetimeEarned: { increment: amount } } : { lifetimeSpent: { increment: Math.abs(amount) } }),
         },
       });
 

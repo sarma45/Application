@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     const finalSlug = existing ? `${slug}-${Date.now()}` : slug;
 
     const org = await prisma.organization.create({
-      data: { name, slug, ownerId: session.user.id, plan: "BUSINESS" },
+      data: { name, slug: finalSlug, ownerId: session.user.id, plan: "BUSINESS" },
     });
 
     await prisma.organizationMember.create({

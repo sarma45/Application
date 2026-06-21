@@ -1,13 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { rateLimit } from "@/lib/rate-limit";
 
 vi.mock("@/lib/redis", () => ({
   redis: {
     status: "ready",
-    multi: vi.fn(),
-    expire: vi.fn(),
-    incr: vi.fn(),
-    ttl: vi.fn(),
+    eval: vi.fn(),
   },
 }));
 
@@ -18,12 +15,7 @@ describe("rate-limit", () => {
 
   it("should allow request when under limit", async () => {
     const redis = (await import("@/lib/redis")).redis as any;
-    const mockMulti = {
-      incr: vi.fn(),
-      ttl: vi.fn(),
-      exec: vi.fn().mockResolvedValue([[null, 1], [null, 300]]),
-    };
-    redis.multi = vi.fn().mockReturnValue(mockMulti);
+    redis.eval = vi.fn().mockResolvedValue([1, 9, 300]);
 
     const result = await rateLimit(new Request("http://test.com", {
       headers: { "x-forwarded-for": "1.2.3.4" },
@@ -35,12 +27,7 @@ describe("rate-limit", () => {
 
   it("should block request when over limit", async () => {
     const redis = (await import("@/lib/redis")).redis as any;
-    const mockMulti = {
-      incr: vi.fn(),
-      ttl: vi.fn(),
-      exec: vi.fn().mockResolvedValue([[null, 11], [null, 200]]),
-    };
-    redis.multi = vi.fn().mockReturnValue(mockMulti);
+    redis.eval = vi.fn().mockResolvedValue([0, 0, 200]);
 
     const result = await rateLimit(new Request("http://test.com", {
       headers: { "x-forwarded-for": "1.2.3.4" },
@@ -57,7 +44,7 @@ describe("rate-limit", () => {
     const result = await rateLimit(new Request("http://test.com"), "api");
 
     expect(result.allowed).toBe(true);
-    expect(result.remaining).toBe(100);
+    expect(result.remaining).toBe(99);
   });
 
   it("should use different windows per zone", () => {
