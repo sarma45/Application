@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AVAILABLE_MODELS } from "@/lib/limits";
+import { useVisualizerStore } from "@/hooks/use-visualizer-store";
 
 interface AgentRunnerProps {
   agentId: string;
@@ -92,6 +93,8 @@ function WorkflowProgress({ messages }: { messages: { role: string; content: str
 }
 
 export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, isTestMode, isCreator, modelProvider, modelId }: AgentRunnerProps) {
+  const { plan } = useVisualizerStore();
+  const [dimFor3D, setDimFor3D] = useState(false);
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [running, setRunning] = useState(false);
@@ -121,6 +124,8 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
     sessionIdRef.current = null;
     setError("");
     setAttachedFile(null);
+    setDimFor3D(false);
+    useVisualizerStore.getState().reset();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -136,6 +141,7 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
 
     setMessages((prev) => [...prev, { role: "user", content: userContent }, { role: "assistant", content: "" }]);
     setRunning(true);
+    useVisualizerStore.getState().reset();
 
     try {
       const res = await fetch(`/api/agents/${slug}/execute`, {
@@ -184,6 +190,20 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
                 sessionIdRef.current = parsed.sessionId;
                 setSessionId(parsed.sessionId);
               }
+
+              // Handle structured task visualizer events
+              if (parsed.type === "plan_created") {
+                useVisualizerStore.getState().setPlan(parsed.payload.plan);
+              } else if (parsed.type === "tool_call_started") {
+                useVisualizerStore.getState().updateStep(parsed.payload.stepId, { status: "running" });
+              } else if (parsed.type === "tool_call_completed") {
+                useVisualizerStore.getState().updateStep(parsed.payload.stepId, { status: "success", output: parsed.payload.result });
+              } else if (parsed.type === "step_failed") {
+                useVisualizerStore.getState().updateStep(parsed.payload.stepId, { status: "error", error: parsed.payload.error });
+              } else if (parsed.type === "task_complete") {
+                useVisualizerStore.getState().setActive(false);
+              }
+
               if (parsed.text) {
                 streamStarted = true;
                 assistantMessage += parsed.text;
@@ -219,7 +239,7 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
   }
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col h-[600px] relative">
       <div className="flex items-center justify-between px-4 py-2 border-b border-light gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs text-secondary">
@@ -255,16 +275,63 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
             )}
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={handleClear}>
-            Clear
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isWorkflowAgent && plan.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setDimFor3D(!dimFor3D)}
+              className={`text-xs px-2.5 py-1 rounded-full font-semibold transition-all duration-300 ${
+                dimFor3D
+                  ? "bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]"
+                  : "bg-purple-600/10 text-purple-400 hover:bg-purple-600/20"
+              }`}
+            >
+              {dimFor3D ? "👁️ Hide 3D Graph" : "🔮 View 3D Graph"}
+            </button>
+          )}
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleClear}>
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
       {isWorkflowAgent && <WorkflowProgress messages={messages} />}
 
-      <div className="flex-1 overflow-y-auto space-y-4 p-4">
+      {/* Cybernetic immersive overlay when observing background 3D graph */}
+      {dimFor3D && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none z-10">
+          <div className="absolute inset-0 bg-theme/50 backdrop-blur-sm pointer-events-none" />
+          <div className="glass p-6 rounded-2xl border border-purple-500/25 max-w-sm pointer-events-auto z-20 shadow-[0_0_30px_rgba(168,85,247,0.15)] bg-theme/90">
+            <span className="text-3xl block mb-3 animate-bounce">🔮</span>
+            <h4 className="text-sm font-bold text-theme tracking-wide uppercase">Swarm Graph Matrix</h4>
+            <p className="text-xs text-secondary mt-2 leading-relaxed">
+              Now viewing the active agent execution pipeline in the background 3D canvas context.
+            </p>
+            <div className="mt-4 flex flex-col gap-1.5 text-left border-y border-theme/10 py-3 my-2">
+              <span className="text-[10px] text-secondary font-medium">💡 Status Indicators:</span>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <span className="text-[9px] text-indigo-400 flex items-center gap-1 font-semibold">● Indigo: Pending</span>
+                <span className="text-[9px] text-blue-400 flex items-center gap-1 font-semibold animate-pulse">● Blue (Spins): Active</span>
+                <span className="text-[9px] text-emerald-400 flex items-center gap-1 font-semibold">● Emerald: Complete</span>
+                <span className="text-[9px] text-red-400 flex items-center gap-1 font-semibold">● Red: Error</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="mt-3 w-full"
+              onClick={() => setDimFor3D(false)}
+            >
+              Back to Console
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className={`flex-1 overflow-y-auto space-y-4 p-4 transition-all duration-500 ${dimFor3D ? "opacity-5 pointer-events-none blur-xs" : ""}`}>
         {messages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-secondary">Run {agentName} by sending a message</p>
@@ -287,7 +354,7 @@ export function AgentRunner({ agentId, slug, agentName, category, systemPrompt, 
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-light p-4 flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className={`border-t border-light p-4 flex flex-col gap-2 transition-all duration-500 ${dimFor3D ? "opacity-5 pointer-events-none blur-xs" : ""}`}>
         {isDataAgent && (
           <div className="flex items-center gap-2">
             <input

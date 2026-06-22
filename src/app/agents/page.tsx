@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SearchBar } from "@/components/agent/search-bar";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
+import { MarketplaceSync } from "@/components/agent/marketplace-sync";
+import { MarketplaceScene3DWrapper } from "@/components/effects/MarketplaceScene3DWrapper";
 
 export const metadata: Metadata = {
   title: "Explore Agents",
@@ -45,6 +47,8 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
 
   return (
     <div className="container-main py-8">
+      <MarketplaceSync agents={agents} />
+      <MarketplaceScene3DWrapper />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-theme">Explore Agents</h1>

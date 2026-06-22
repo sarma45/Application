@@ -10,6 +10,7 @@ import { ReviewForm } from "@/components/agent/review-form";
 import { NeuralText } from "@/components/effects/neural-text";
 import { cacheGet, cacheSet, CACHE_TTL } from "@/lib/redis";
 import { decryptField } from "@/lib/encryption";
+import { LiveTaskVisualizer3DWrapper } from "@/components/effects/LiveTaskVisualizer3DWrapper";
 
 interface AgentDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -69,6 +70,7 @@ export default async function AgentDetailPage({ params }: AgentDetailPageProps) 
 
   return (
     <div className="container-main py-8">
+      <LiveTaskVisualizer3DWrapper />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <Card>
