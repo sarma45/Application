@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 const navLinks = [
   { href: "/agents", label: "Explore" },
+  { href: "/agentswarm", label: "Agent Swarm" },
   { href: "/agents/create", label: "Create" },
   { href: "/pricing", label: "Pricing" },
   { href: "/open-source", label: "Open Models" },
