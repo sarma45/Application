@@ -164,6 +164,10 @@ export async function POST(
 
     const { message, systemPrompt, category, sessionId: clientSessionId, modelProvider, modelId } = parsed.data as any;
 
+    if (clientSessionId && /[^a-zA-Z0-9\-_:]/.test(clientSessionId)) {
+      return badRequest("Invalid sessionId format");
+    }
+
     const limit = await checkFreeTierLimit(session.user.id);
     if (!limit.allowed) {
       return paymentRequired("Daily free tier limit reached. Upgrade your plan or try again tomorrow.");
